@@ -486,6 +486,45 @@
     @media (orientation: landscape) and (max-height: 560px), (orientation: landscape) and (max-width: 820px) {
       #game-area{ border-top-width:1px; }
     }
+
+    /* ===== 暱稱、排行榜、分數 ===== */
+    #name-modal, #board-modal{
+      position: absolute; inset: 0; background: rgba(20,30,10,.72);
+      display: none; justify-content: center; align-items: center; z-index: 110;
+    }
+    #board-modal .modal-content{ width: min(360px, 92vw); }
+    .nick-input{
+      width: 100%; padding: 9px 10px; font-size: 16px; font-family: inherit; font-weight: 700; color: var(--ink);
+      background: #fff; border: 1px solid #D9D1C3; border-radius: 8px; outline: none;
+    }
+    .nick-input:focus{ border-color: #7F9B70; }
+    #name-modal .nick-input{ text-align: center; font-size: 18px; }
+    .nick-hint{ font-size: 12px !important; font-weight: 600 !important; opacity: .75; margin-top: 6px !important; }
+    button.btn-ghost{
+      display: block; width: 100%; padding: 9px; margin-top: 10px; border-radius: 8px; cursor: pointer;
+      background: #fff; color: var(--ink); border: 1px solid #D9D1C3; box-shadow: none;
+      font-family: inherit; font-weight: 700; font-size: 15px;
+    }
+    button.btn-ghost:active{ background: var(--cream-dark); }
+    .score-big{ display: flex; align-items: baseline; justify-content: center; gap: 10px; margin: 2px 0 8px; }
+    .score-big .sb-l{ font-size: 15px; font-weight: 700; }
+    .score-big strong{ font-size: 40px; line-height: 1; font-weight: 800; color: var(--brick-dark); }
+    .rank-line{ min-height: 1.4em; font-size: 15px !important; }
+    .rank-line .badge{ display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 10px; background: #F3E3B5; color: var(--brick-dark); font-size: 13px; }
+    #board-tabs{ margin-bottom: 8px; }
+    #board-tabs button{ margin-top: 0; }
+    #board-body{ min-height: 120px; max-height: 46vh; overflow-y: auto; text-align: left; }
+    #board-body .bd-msg{ padding: 28px 0; text-align: center; font-weight: 700; opacity: .7; }
+    .bd-list{ list-style: none; margin: 0; padding: 0; }
+    .bd-list li{ display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-bottom: 1px solid #E6DFD2; font-weight: 700; }
+    .bd-list li.me{ background: #F3E3B5; border-radius: 6px; }
+    .bd-rank{ flex: none; width: 1.8em; text-align: center; color: var(--pipe-dark); }
+    .bd-name{ flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bd-score{ flex: none; color: var(--brick-dark); font-variant-numeric: tabular-nums; }
+    .board-note{ font-size: 12px !important; font-weight: 600 !important; opacity: .7; margin: 8px 0 0 !important; min-height: 1em; }
+    #name-modal .btn-primary, #board-modal .btn-primary{ margin-top: 12px; }
+    .set-group .nick-input{ padding: 6px 8px; font-size: 16px; }
+    #open-board{ margin-top: 6px; }
   </style>
 </head>
 <body>
@@ -526,10 +565,35 @@
     <div id="result-modal">
       <div class="modal-content">
         <h2 data-i18n="over"></h2>
+        <div class="score-big"><span class="sb-l" data-i18n="score"></span><strong id="final-score">0</strong></div>
         <p><span data-i18n="done"></span>: <strong id="final-correct" style="color: var(--pipe-dark);">0</strong></p>
         <p><span data-i18n="fails"></span>: <strong id="final-errors" style="color: var(--red);">0</strong></p>
+        <p><span data-i18n="acc"></span>: <strong id="final-acc">0%</strong></p>
+        <p id="final-rank" class="rank-line"></p>
         <div id="review"></div>
+        <button class="btn-ghost" id="result-board" type="button" data-i18n="board"></button>
         <button class="btn-primary" id="modal-ok" data-i18n="ok"></button>
+      </div>
+    </div>
+
+    <!-- 第一次按「開始」時問暱稱（輸入完按「開始」就直接開始遊戲） -->
+    <div id="name-modal">
+      <div class="modal-content">
+        <h2 data-i18n="nickAsk"></h2>
+        <input id="name-input" class="nick-input" type="text" maxlength="12" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <p class="nick-hint" data-i18n="nickHint"></p>
+        <button class="btn-primary" id="name-start" type="button" data-i18n="start"></button>
+      </div>
+    </div>
+
+    <!-- 排行榜（每個難度一份，前 10 名） -->
+    <div id="board-modal">
+      <div class="modal-content">
+        <h2 data-i18n="board"></h2>
+        <div class="seg" id="board-tabs"></div>
+        <div id="board-body"></div>
+        <p class="board-note" id="board-note"></p>
+        <button class="btn-primary" id="board-close" type="button" data-i18n="close"></button>
       </div>
     </div>
 
@@ -569,7 +633,13 @@
         off: 'No', pinyin: 'Pinyin', zhuyin: 'Zhuyin',
         easy: 'Fácil', normal: 'Normal', hard: 'Difícil',
         start: '¡Empezar!', review: 'Repasa las frases:', hint: '¡Busca la palabra que brilla!', restart: 'Reiniciar', over: '¡Nivel superado!',
-        done: 'Frases completadas', fails: 'Golpes fallidos', ok: 'Aceptar'
+        done: 'Frases completadas', fails: 'Golpes fallidos', ok: 'Aceptar',
+        score: 'Puntos', acc: 'Precisión', board: 'Ranking', close: 'Cerrar', nick: 'Apodo',
+        nickAsk: '¿Cómo te llamas?', nickHint: 'Aparecerá en el ranking (máx. 12 letras)',
+        rankNow: 'Puesto', newBest: '¡Nuevo récord!', best: 'Tu mejor marca', notTop: 'Fuera del top 10',
+        boardEmpty: 'Aún no hay puntajes', boardLoading: 'Cargando…', boardErr: 'No se pudo conectar',
+        localNote: 'Solo se guardan en este dispositivo', saving: 'Guardando…', saveErr: 'No se pudo guardar el puntaje',
+        noScore: 'Completa al menos una frase para entrar al ranking'
       },
       en: {
         title: 'Whack-a-Mole',
@@ -582,7 +652,13 @@
         off: 'Off', pinyin: 'Pinyin', zhuyin: 'Zhuyin',
         easy: 'Easy', normal: 'Normal', hard: 'Hard',
         start: 'Start!', review: 'Review your sentences:', hint: 'Find the word that glows!', restart: 'Restart', over: 'Level cleared!',
-        done: 'Sentences completed', fails: 'Missed hits', ok: 'OK'
+        done: 'Sentences completed', fails: 'Missed hits', ok: 'OK',
+        score: 'Score', acc: 'Accuracy', board: 'Leaderboard', close: 'Close', nick: 'Nickname',
+        nickAsk: 'What is your nickname?', nickHint: 'Shown on the leaderboard (max. 12 characters)',
+        rankNow: 'Rank', newBest: 'New personal best!', best: 'Your best', notTop: 'Outside the top 10',
+        boardEmpty: 'No scores yet', boardLoading: 'Loading…', boardErr: 'Could not connect',
+        localNote: 'Saved on this device only', saving: 'Saving…', saveErr: 'Could not save your score',
+        noScore: 'Complete at least one sentence to be ranked'
       }
     };
     // 中文介面（和上面的西文／英文用同一組代號）
@@ -593,7 +669,13 @@
         settings: '設定', gUi: '介面語言', gScript: '中文字', gPhon: '語音輔助', gDiff: '難度',
         off: '不顯示', pinyin: '拼音', zhuyin: '注音', easy: '簡單', normal: '普通', hard: '困難',
         start: '開始！', review: '📖 複習句子：', hint: '找發光的字！', restart: '🔄 重新開始', over: '🏁 過關！',
-        done: '完成句子', fails: '打錯次數', ok: '好'
+        done: '完成句子', fails: '打錯次數', ok: '好',
+        score: '分數', acc: '準確度', board: '排行榜', close: '關閉', nick: '暱稱',
+        nickAsk: '請輸入暱稱', nickHint: '會顯示在排行榜（最多 12 字）',
+        rankNow: '名次', newBest: '新紀錄！', best: '個人最高', notTop: '未進前 10 名',
+        boardEmpty: '還沒有紀錄', boardLoading: '載入中…', boardErr: '連線失敗',
+        localNote: '紀錄只存在這台裝置', saving: '儲存中…', saveErr: '分數儲存失敗',
+        noScore: '至少完成一句才會進排行榜'
       },
       'zh-CN': {
         title: '打地鼠学中文', hits: '答对', errs: '打错',
@@ -601,7 +683,13 @@
         settings: '设定', gUi: '界面语言', gScript: '中文字', gPhon: '语音辅助', gDiff: '难度',
         off: '不显示', pinyin: '拼音', zhuyin: '注音', easy: '简单', normal: '普通', hard: '困难',
         start: '开始！', review: '📖 复习句子：', hint: '找发光的字！', restart: '🔄 重新开始', over: '🏁 过关！',
-        done: '完成句子', fails: '打错次数', ok: '好'
+        done: '完成句子', fails: '打错次数', ok: '好',
+        score: '分数', acc: '准确度', board: '排行榜', close: '关闭', nick: '昵称',
+        nickAsk: '请输入昵称', nickHint: '会显示在排行榜（最多 12 字）',
+        rankNow: '名次', newBest: '新纪录！', best: '个人最高', notTop: '未进前 10 名',
+        boardEmpty: '还没有纪录', boardLoading: '载入中…', boardErr: '连线失败',
+        localNote: '纪录只存在这台装置', saving: '储存中…', saveErr: '分数储存失败',
+        noScore: '至少完成一句才会进排行榜'
       }
     };
 
@@ -950,6 +1038,7 @@
     let targetIndex = 0;
     let correctSentenceCount = 0;
     let errorHits = 0;
+    let correctHits = 0;          // 打對的詞數（算準確度用；驚喜地鼠不算）
     let wrongStreak = 0;
     let doneList = [];
     let droughtRounds = 0;
@@ -1064,6 +1153,7 @@
         });
         settingsBox.appendChild(wrap);
       });
+      renderNickAndBoardSettings();
     }
 
     function setSetting(key, val){
@@ -1103,7 +1193,7 @@
     // =====================================================================
     //  遊戲流程
     // =====================================================================
-    startBtn.addEventListener("click", startGame);
+    startBtn.addEventListener("click", requestStart);   // 第一次會先問暱稱（見排行榜區塊）
     document.getElementById('modal-ok').addEventListener('click', () => {
       document.getElementById("result-modal").style.display = "none";
     });
@@ -1125,6 +1215,7 @@
       timeLeft = 120;
       correctSentenceCount = 0;
       errorHits = 0;
+      correctHits = 0;
       wrongStreak = 0; setHint(false); doneList = [];
       droughtRounds = 0;
       updateStats();
@@ -1298,6 +1389,7 @@
         playHitSound(ok);
         speak(cell.word);
         if(ok){
+          correctHits++;
           wrongStreak = 0; setHint(false);
           targetIndex++;
           droughtRounds = 0;
@@ -1376,10 +1468,14 @@
       if('speechSynthesis' in window) window.speechSynthesis.cancel();
 
       if(showResult){
+        const res = computeScore(correctSentenceCount, correctHits, errorHits);
         document.getElementById("final-correct").textContent = correctSentenceCount;
         document.getElementById("final-errors").textContent = errorHits;
+        document.getElementById("final-score").textContent = res.score;
+        document.getElementById("final-acc").textContent = res.pct + '%';
         buildReview();
         document.getElementById("result-modal").style.display = "flex";
+        handleRoundResult(res);                 // 送出成績、顯示名次（見排行榜區塊）
       }
 
       currentSentenceObj = null;
@@ -1390,6 +1486,216 @@
       timeLeft = 120; updateTimerDisplay();
       renderSettings();
     }
+
+    // =====================================================================
+    //  計分 + 暱稱 + 排行榜
+    //
+    //  分數 = 完成句數 × 100 + 準確度加分（準確度 × 50，最多 50；至少完成 1 句才給）
+    //  準確度 = 打對的詞 ÷ (打對的詞 + 打錯的次數)；驚喜地鼠、沒打完的那一句都不算。
+    //
+    //  資料層只有兩個動作：submit(成績)、top(難度)。
+    //    LocalBoard     ：存在這台瀏覽器（現在使用中，讓整個流程可以先跑起來）
+    //    FirestoreBoard ：已經寫好，等你接 Firebase：
+    //        1. 把下面 LEADERBOARD.useFirebase 改成 true
+    //        2. 到 Firebase 主控台貼上 README 裡的安全規則
+    //        3. 第一次開排行榜時，主控台的錯誤訊息會附一個建立索引的連結，點下去建立即可
+    // =====================================================================
+    const LEADERBOARD = {
+      useFirebase: false,                 // ← 接上 Firebase 後改成 true
+      collection: 'moleScores',           // 和「跑吧！漢字」的 mandarinRunnerScores 分開
+      size: 10,                           // 每個難度顯示前幾名
+      maxName: 12,
+      defaultName: 'Jugador',
+      localKey: 'moleScoresLocal',
+      nameKey: 'moleName'
+    };
+    const DIFF_KEYS = ['easy', 'normal', 'hard'];
+
+    function computeScore(sentences, correct, wrong){
+      const total = correct + wrong;
+      const accuracy = total > 0 ? correct / total : 0;
+      const bonus = sentences > 0 ? Math.round(accuracy * 50) : 0;
+      return { score: sentences * 100 + bonus, accuracy, pct: Math.round(accuracy * 100), sentences };
+    }
+
+    // ---- 暱稱 ----
+    function cleanName(s){
+      const t = Array.from(String(s || '').replace(/\s+/g, ' ').trim()).slice(0, LEADERBOARD.maxName).join('').trim();
+      return t || LEADERBOARD.defaultName;
+    }
+    function nameKeyOf(name){ return String(name || '').normalize('NFKC').toLowerCase().trim(); }   // 同名（不分大小寫）視為同一人
+    let playerName = null;                       // null = 還沒取過名字
+    try{ const n = localStorage.getItem(LEADERBOARD.nameKey); if(n) playerName = cleanName(n); }catch(e){}
+    function savePlayerName(raw){
+      playerName = cleanName(raw);
+      try{ localStorage.setItem(LEADERBOARD.nameKey, playerName); }catch(e){}
+      return playerName;
+    }
+
+    // ---- 資料層：本機版 ----
+    const LocalBoard = {
+      isLocal: true,
+      _read(){ try{ return JSON.parse(localStorage.getItem(LEADERBOARD.localKey) || '{}') || {}; }catch(e){ return {}; } },
+      _write(o){ try{ localStorage.setItem(LEADERBOARD.localKey, JSON.stringify(o)); }catch(e){} },
+      async submit(e){
+        const all = this._read(), list = all[e.difficulty] || [], key = nameKeyOf(e.name);
+        const i = list.findIndex(x => nameKeyOf(x.name) === key);
+        const rec = { name: e.name, score: e.score, sentences: e.sentences, accuracy: e.accuracy, script: e.script, at: Date.now() };
+        let improved = false, best = e.score;
+        if(i < 0){ list.push(rec); improved = true; }
+        else if(e.score > list[i].score){ list[i] = rec; improved = true; }
+        else best = list[i].score;
+        all[e.difficulty] = list;
+        this._write(all);
+        return { improved, best };
+      },
+      async top(difficulty){
+        const list = (this._read()[difficulty] || []).slice();
+        list.sort((a, b) => b.score - a.score || a.at - b.at);
+        return list.slice(0, LEADERBOARD.size);
+      }
+    };
+
+    // ---- 資料層：Firebase 版（已寫好、預設關閉）----
+    // 文件：moleScores/{難度}__{暱稱小寫}，每人每個難度只留最高分（交易內比較，較低的分數不會覆蓋）
+    const FirestoreBoard = {
+      isLocal: false,
+      _col(){ return db.collection(LEADERBOARD.collection); },
+      _id(difficulty, name){ return difficulty + '__' + encodeURIComponent(nameKeyOf(name)).replace(/\./g, '%2E'); },
+      async submit(e){
+        const ref = this._col().doc(this._id(e.difficulty, e.name));
+        let improved = false, best = e.score;
+        await db.runTransaction(async tx => {
+          const snap = await tx.get(ref);
+          const old = snap.exists ? Number(snap.data().score) || 0 : -1;
+          if(e.score > old){
+            improved = true; best = e.score;
+            tx.set(ref, {
+              name: e.name, score: e.score, sentences: e.sentences, accuracy: Math.round(e.accuracy * 100),
+              difficulty: e.difficulty, script: e.script,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          }else{ improved = false; best = old; }
+        });
+        return { improved, best };
+      },
+      async top(difficulty){
+        // 需要複合索引：difficulty（升冪）＋ score（降冪）
+        const snap = await this._col().where('difficulty', '==', difficulty).orderBy('score', 'desc').limit(LEADERBOARD.size).get();
+        return snap.docs.map(d => d.data());
+      }
+    };
+    function activeBoard(){ return (LEADERBOARD.useFirebase && firebaseReady && db) ? FirestoreBoard : LocalBoard; }
+
+    // ---- 這一局結束：送出成績、顯示名次 ----
+    let roundToken = 0;
+    async function handleRoundResult(res){
+      const rankEl = document.getElementById('final-rank');
+      const token = ++roundToken;
+      if(res.sentences < 1){ rankEl.innerHTML = `<small class="tr">${zh('noScore')}</small>`; return; }
+      rankEl.innerHTML = bi('saving');
+      const entry = { name: playerName || LEADERBOARD.defaultName, score: res.score, sentences: res.sentences,
+                      accuracy: res.accuracy, difficulty: settings.diff, script: settings.script };
+      const board = activeBoard();
+      try{
+        const r = await board.submit(entry);
+        const list = await board.top(entry.difficulty);
+        if(token !== roundToken) return;
+        const idx = list.findIndex(x => nameKeyOf(x.name) === nameKeyOf(entry.name));
+        let html = idx >= 0 ? `${bi('rankNow')}: <strong>#${idx + 1}</strong>` : bi('notTop');
+        html += r.improved ? `<span class="badge">${zh('newBest')}</span>` : `<br><small class="tr">${zh('best')}: ${r.best}</small>`;
+        rankEl.innerHTML = html;
+      }catch(err){
+        console.warn('排行榜送出失敗:', err);
+        if(token === roundToken) rankEl.innerHTML = bi('saveErr');
+      }
+    }
+
+    // ---- 暱稱視窗（第一次按「開始」） ----
+    const nameModal = document.getElementById('name-modal');
+    const nameInput = document.getElementById('name-input');
+    function requestStart(){
+      if(isPlaying) return;
+      if(playerName){ startGame(); return; }
+      nameInput.value = '';
+      nameInput.placeholder = LEADERBOARD.defaultName;
+      nameModal.style.display = 'flex';
+      setTimeout(() => nameInput.focus(), 50);
+    }
+    function confirmName(){
+      savePlayerName(nameInput.value);
+      nameModal.style.display = 'none';
+      renderSettings();
+      startGame();
+    }
+    document.getElementById('name-start').addEventListener('click', confirmName);
+    nameInput.addEventListener('keydown', e => { if(e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) confirmName(); });
+
+    // ---- 設定面板裡的暱稱欄 + 排行榜按鈕 ----
+    function renderNickAndBoardSettings(){
+      const wrap = document.createElement('div');
+      wrap.className = 'set-group';
+      wrap.innerHTML = `<div class="lbl">${bi('nick')}</div><input class="nick-input" id="nick-input" type="text" maxlength="${LEADERBOARD.maxName}" autocomplete="off" spellcheck="false">
+        <button type="button" class="btn-ghost" id="open-board">${bi('board')}</button>`;
+      const input = wrap.querySelector('#nick-input');
+      input.value = playerName || '';
+      input.placeholder = LEADERBOARD.defaultName;
+      input.disabled = isPlaying;
+      const commit = () => { if(input.value.trim() || playerName){ input.value = savePlayerName(input.value); } };
+      input.addEventListener('change', commit);
+      input.addEventListener('keydown', e => { if(e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) input.blur(); });
+      wrap.querySelector('#open-board').addEventListener('click', () => { toggleSheet(false); openBoard(settings.diff); });
+      settingsBox.appendChild(wrap);
+    }
+
+    // ---- 排行榜視窗 ----
+    const boardModal = document.getElementById('board-modal');
+    const boardBody = document.getElementById('board-body');
+    const boardTabs = document.getElementById('board-tabs');
+    const boardNote = document.getElementById('board-note');
+    let boardDiff = 'easy', boardToken = 0;
+    function openBoard(diff){
+      boardModal.style.display = 'flex';
+      showBoardTab(DIFF_KEYS.includes(diff) ? diff : 'easy');
+    }
+    function renderBoardTabs(){
+      boardTabs.innerHTML = '';
+      DIFF_KEYS.forEach(k => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.innerHTML = bi(k); b.dataset.v = k;
+        if(k === boardDiff) b.classList.add('on');
+        b.addEventListener('click', () => showBoardTab(k));
+        boardTabs.appendChild(b);
+      });
+    }
+    async function showBoardTab(diff){
+      boardDiff = diff;
+      renderBoardTabs();
+      const board = activeBoard(), token = ++boardToken;
+      boardNote.innerHTML = board.isLocal ? bi('localNote') : '';
+      const msg = key => { boardBody.innerHTML = `<div class="bd-msg">${bi(key)}</div>`; };
+      msg('boardLoading');
+      try{
+        const list = await board.top(diff);
+        if(token !== boardToken) return;
+        if(!list.length){ msg('boardEmpty'); return; }
+        const ol = document.createElement('ol'); ol.className = 'bd-list';
+        list.forEach((x, i) => {
+          const li = document.createElement('li');
+          if(playerName && nameKeyOf(x.name) === nameKeyOf(playerName)) li.className = 'me';
+          const r = document.createElement('span'); r.className = 'bd-rank'; r.textContent = i + 1;
+          const n = document.createElement('span'); n.className = 'bd-name'; n.textContent = x.name;   // 用 textContent，別人的暱稱不會變成程式碼
+          const s = document.createElement('span'); s.className = 'bd-score'; s.textContent = x.score;
+          li.append(r, n, s); ol.appendChild(li);
+        });
+        boardBody.innerHTML = ''; boardBody.appendChild(ol);
+      }catch(err){
+        console.warn('讀取排行榜失敗:', err);
+        if(token === boardToken) msg('boardErr');
+      }
+    }
+    document.getElementById('board-close').addEventListener('click', () => { boardModal.style.display = 'none'; });
+    document.getElementById('result-board').addEventListener('click', () => openBoard(settings.diff));
 
     // =====================================================================
     //  煙火（馬力歐配色）

@@ -16,7 +16,49 @@
 5. 打錯順序：地鼠頭暈、字卡抖一下、發出短短的「噗」，題目列正在等的字會跳一下。連續打錯 3 次，該字會發光並放大（只放大字，不會改變橫幅高度），橫幅左上角的說明也會改成「找發光的字」。
 6. 🔊 按鈕可以再聽一次整句（電腦版在題目橫幅右邊；手機直式縮小後和計時器一起放在橫幅右上角，讓句子用滿整個橫幅寬度）。
 7. 時間到之後，結果畫面會列出這局完成的句子：中文、拼音／注音、西班牙文翻譯，每句都能再聽一次。
-8. 遊戲中可按「重新開始」，回到設定畫面換選項（中途離開不會顯示成績）。
+8. 遊戲中可按「重新開始」，回到設定畫面換選項（中途離開不會顯示成績，也不會進排行榜）。
+
+## 計分與排行榜
+
+- **分數 ＝ 完成句數 × 100 ＋ 準確度加分**。準確度加分 ＝ 準確度 × 50（最多 50 分，至少完成 1 句才給）。
+  準確度 ＝ 打對的詞 ÷（打對的詞 ＋ 打錯的次數）；驚喜地鼠不算，時間到時沒打完的那一句不算。
+- **暱稱**：第一次按「開始」會跳出視窗輸入暱稱（最多 12 字，沒填就是 `Jugador`），按視窗裡的「開始」（或 Enter）就直接開始遊戲。
+  暱稱存在瀏覽器，之後可以在設定裡改。
+- **排行榜**：簡單／普通／困難各一份，各顯示前 10 名，繁體與簡體不分開。設定面板和結算畫面都有「排行榜」按鈕；結算畫面會顯示這局的分數、準確度、名次。
+- 同一個暱稱（不分大小寫）在同一個難度只留最高分，分數比較低的那局不會蓋掉。
+- 一局沒完成任何句子（0 分）不會送出成績。
+
+### 目前狀態：先用「這台裝置」的排行榜
+
+排行榜的畫面和資料層都做好了，現在資料存在這台瀏覽器（localStorage），所以只有自己看得到。
+Firebase 版本也已經寫好（`FirestoreBoard`），只是預設關著。接上 Firebase 的步驟：
+
+1. 把 `index.html` 裡的 `LEADERBOARD.useFirebase` 從 `false` 改成 `true`（collection 是 `moleScores`，和「跑吧！漢字」的 `mandarinRunnerScores` 分開，放在同一個專案 corre-d16da）。
+2. 到 Firebase 主控台 → Firestore → 規則，加入下面這段（保留原本其他 collection 的規則）。
+3. 第一次打開排行榜時，瀏覽器主控台（Console）會有一則錯誤，附一個「建立索引」的連結，點下去建立即可（`difficulty` 升冪 ＋ `score` 降冪）。
+
+```
+match /moleScores/{id} {
+  allow read: if true;
+  allow create: if validScore(request.resource.data);
+  allow update: if validScore(request.resource.data)
+                && request.resource.data.score > resource.data.score;   // 只能往上更新
+  allow delete: if false;
+}
+function validScore(d) {
+  return d.keys().hasOnly(['name','score','sentences','accuracy','difficulty','script','updatedAt'])
+      && d.name is string && d.name.size() >= 1 && d.name.size() <= 24
+      && d.score is int && d.score >= 0 && d.score <= 3050
+      && d.sentences is int && d.sentences >= 0 && d.sentences <= 30
+      && d.accuracy is int && d.accuracy >= 0 && d.accuracy <= 100
+      && d.difficulty in ['easy','normal','hard']
+      && d.script in ['zh-TW','zh-CN'];
+}
+```
+
+這套規則能擋掉亂填的資料和超出合理範圍的分數，但沒有登入機制，所以擋不住有心人直接在合理範圍內灌分；一般班級／朋友使用已經夠用。
+
+資料格式（每個難度、每個暱稱一份文件，文件 ID 是 `難度__暱稱小寫`）：`name`、`score`、`sentences`、`accuracy`（0–100）、`difficulty`、`script`、`updatedAt`。
 
 ## 設定
 
@@ -27,7 +69,7 @@
 | 語音輔助 | 不顯示 / 拼音 / 注音 |
 | 難度 | 簡單 / 普通 / 困難（同時出現的地鼠數與停留時間不同） |
 
-設定會記在瀏覽器裡，下次打開還在。
+設定、暱稱會記在瀏覽器裡，下次打開還在。
 
 ## 特色
 
