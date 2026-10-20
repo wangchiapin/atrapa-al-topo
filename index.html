@@ -206,7 +206,7 @@
     .phon-text{
       display: none;
       font-size: max(8px, min(calc(var(--mw) * .135 * var(--kmul)), calc(88cqw / var(--pl, 6))));
-      color: var(--pipe-dark); font-weight: 700; line-height: 1.1;
+      color: var(--pipe-dark); font-weight: 700; line-height: 1.1; white-space: pre;
     }
     #game-area.ph-on .phon-text{ display: block; }
 
@@ -263,7 +263,7 @@
     .rv-item{ display:flex; gap:8px; align-items:flex-start; padding:6px 0; border-bottom:1px solid rgba(58,42,26,.18); }
     .rv-item button{ flex:none; width:32px; height:32px; border-radius:50%; border:2px solid var(--ink); background:var(--coin-gold); cursor:pointer; font-size:14px; }
     .rv-zh{ font-size:20px; font-weight:800; color:var(--brick-dark); line-height:1.25; }
-    .rv-ph{ font-size:12px; font-weight:700; color:var(--pipe-dark); }
+    .rv-ph{ white-space:pre-line; font-size:12px; font-weight:700; color:var(--pipe-dark); }
     .rv-es{ font-size:14px; font-weight:600; color:var(--ink); }
     .modal-content{ max-height: 92%; overflow-y: auto; }
     .modal-content.wide{ width: min(480px, 92vw); }
@@ -282,7 +282,7 @@
       display: inline-flex; flex-direction: column; align-items: center;
       padding: .02em .14em .06em; border-radius: .16em;
     }
-    .tc-ph{ font-size: .4em; font-weight: 700; color: var(--pipe-dark); line-height: 1.25; white-space: nowrap; }
+    .tc-ph{ font-size: .4em; font-weight: 700; color: var(--pipe-dark); line-height: 1.25; white-space: pre; }
     .tc-zh{ white-space: nowrap; }
     .target-char.completed{ color: var(--pipe-dark); }
     .target-char.completed .tc-zh{ text-decoration: underline; }
@@ -629,8 +629,9 @@
         placeholder: 'Pulsa "¡Empezar!" para cargar una frase',
         loading: 'Cargando frases…',
         settings: 'Configuración',
-        gUi: 'Idioma de la interfaz', gScript: 'Escritura china', gPhon: 'Ayuda fonética', gDiff: 'Dificultad',
-        off: 'No', pinyin: 'Pinyin', zhuyin: 'Zhuyin',
+        gUi: 'Idioma de la interfaz', gScript: 'Escritura china', gPhon: 'Ayuda fonética', gDiff: 'Dificultad', gRate: 'Velocidad de voz',
+        off: 'No', pinyin: 'Pinyin', zhuyin: 'Zhuyin', both: 'Ambos',
+        slow: 'Lenta', rnormal: 'Normal', fast: 'Rápida',
         easy: 'Fácil', normal: 'Normal', hard: 'Difícil',
         start: '¡Empezar!', review: 'Repasa las frases:', hint: '¡Busca la palabra que brilla!', restart: 'Reiniciar', over: '¡Nivel superado!',
         done: 'Frases completadas', fails: 'Golpes fallidos', ok: 'Aceptar',
@@ -648,8 +649,9 @@
         placeholder: 'Press "Start!" to load a sentence',
         loading: 'Loading sentences…',
         settings: 'Settings',
-        gUi: 'Interface language', gScript: 'Chinese script', gPhon: 'Phonetics', gDiff: 'Difficulty',
-        off: 'Off', pinyin: 'Pinyin', zhuyin: 'Zhuyin',
+        gUi: 'Interface language', gScript: 'Chinese script', gPhon: 'Phonetics', gDiff: 'Difficulty', gRate: 'Speech speed',
+        off: 'Off', pinyin: 'Pinyin', zhuyin: 'Zhuyin', both: 'Both',
+        slow: 'Slow', rnormal: 'Normal', fast: 'Fast',
         easy: 'Easy', normal: 'Normal', hard: 'Hard',
         start: 'Start!', review: 'Review your sentences:', hint: 'Find the word that glows!', restart: 'Restart', over: 'Level cleared!',
         done: 'Sentences completed', fails: 'Missed hits', ok: 'OK',
@@ -666,8 +668,9 @@
       'zh-TW': {
         title: '打地鼠學中文', hits: '答對', errs: '打錯',
         prompt: '照順序打出詞語：', placeholder: '按「開始」載入題目', loading: '載入題目中…',
-        settings: '設定', gUi: '介面語言', gScript: '中文字', gPhon: '語音輔助', gDiff: '難度',
-        off: '不顯示', pinyin: '拼音', zhuyin: '注音', easy: '簡單', normal: '普通', hard: '困難',
+        settings: '設定', gUi: '介面語言', gScript: '中文字', gPhon: '語音輔助', gDiff: '難度', gRate: '語速',
+        off: '不顯示', pinyin: '拼音', zhuyin: '注音', both: '兩個都顯示',
+        slow: '慢', rnormal: '普通', fast: '快', zhOnly: '只有中文', easy: '簡單', normal: '普通', hard: '困難',
         start: '開始！', review: '📖 複習句子：', hint: '找發光的字！', restart: '🔄 重新開始', over: '🏁 過關！',
         done: '完成句子', fails: '打錯次數', ok: '好',
         score: '分數', acc: '準確度', board: '排行榜', close: '關閉', nick: '暱稱',
@@ -680,8 +683,9 @@
       'zh-CN': {
         title: '打地鼠学中文', hits: '答对', errs: '打错',
         prompt: '照顺序打出词语：', placeholder: '按“开始”载入题目', loading: '载入题目中…',
-        settings: '设定', gUi: '界面语言', gScript: '中文字', gPhon: '语音辅助', gDiff: '难度',
-        off: '不显示', pinyin: '拼音', zhuyin: '注音', easy: '简单', normal: '普通', hard: '困难',
+        settings: '设定', gUi: '界面语言', gScript: '中文字', gPhon: '语音辅助', gDiff: '难度', gRate: '语速',
+        off: '不显示', pinyin: '拼音', zhuyin: '注音', both: '两个都显示',
+        slow: '慢', rnormal: '普通', fast: '快', zhOnly: '只有中文', easy: '简单', normal: '普通', hard: '困难',
         start: '开始！', review: '📖 复习句子：', hint: '找发光的字！', restart: '🔄 重新开始', over: '🏁 过关！',
         done: '完成句子', fails: '打错次数', ok: '好',
         score: '分数', acc: '准确度', board: '排行榜', close: '关闭', nick: '昵称',
@@ -693,19 +697,58 @@
       }
     };
 
-    // ---- 設定（會記在這台瀏覽器；讀不到就用預設值） ----
-    const settings = { ui: 'es', script: 'zh-TW', phon: 'off', diff: 'easy' };
-    try{
-      const saved = JSON.parse(localStorage.getItem('moleSettings') || '{}');
-      if(saved.ui in I18N) settings.ui = saved.ui;
-      if(['zh-TW','zh-CN'].includes(saved.script)) settings.script = saved.script;
-      if(['off','pinyin','zhuyin'].includes(saved.phon)) settings.phon = saved.phon;
-      if(['easy','normal','hard'].includes(saved.diff)) settings.diff = saved.diff;
-    }catch(e){}
-    function saveSettings(){ try{ localStorage.setItem('moleSettings', JSON.stringify(settings)); }catch(e){} }
-    const T = k => I18N[settings.ui][k];                 // 你選的語言（西文／英文）
+    // ---- 設定 ----
+    // 共用設定（和其他遊戲同一把鑰匙 hanziGames.settings）：script / lang / phon / rate
+    // 遊戲自己的設定（moleSettings）：只放 diff（難度）
+    // 程式內部：ui = lang（es/en/zh）；script 內部用 'zh-TW' / 'zh-CN'，存檔時對應成 trad / simp
+    const SETTINGS_KEY = 'hanziGames.settings';
+    const OWN_KEY = 'moleSettings';
+    const SET_OPTS = { script:['trad','simp'], lang:['es','en','zh'], phon:['pinyin','zhuyin','both','off'], rate:['slow','normal','fast'] };
+    const RATE_VALUE = { slow:0.45, normal:0.65, fast:0.85 };
+    const toInnerScript = v => v === 'simp' ? 'zh-CN' : 'zh-TW';
+    const toSharedScript = v => v === 'zh-CN' ? 'simp' : 'trad';
+    const settings = { ui: 'es', script: 'zh-TW', phon: 'pinyin', rate: 'normal', diff: 'easy' };
+    function readJson(key){
+      try{ const o = JSON.parse(localStorage.getItem(key) || 'null'); return (o && typeof o === 'object') ? o : null; }catch(e){ return null; }
+    }
+    // 把共用設定讀進 settings（啟動時、其他分頁改了設定時都會呼叫）
+    function loadShared(){
+      const sh = readJson(SETTINGS_KEY);
+      if(!sh) return;
+      if(SET_OPTS.script.includes(sh.script)) settings.script = toInnerScript(sh.script);
+      if(SET_OPTS.lang.includes(sh.lang)) settings.ui = sh.lang;
+      if(SET_OPTS.phon.includes(sh.phon)) settings.phon = sh.phon;
+      if(SET_OPTS.rate.includes(sh.rate)) settings.rate = sh.rate;
+    }
+    function writeShared(){
+      try{
+        const cur = readJson(SETTINGS_KEY) || {};      // 合併寫入：保留別的遊戲寫的欄位
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(Object.assign(cur, {
+          v: 1, script: toSharedScript(settings.script), lang: settings.ui, phon: settings.phon, rate: settings.rate
+        })));
+      }catch(e){}
+    }
+    function saveOwn(){ try{ localStorage.setItem(OWN_KEY, JSON.stringify({ diff: settings.diff })); }catch(e){} }
+    (function init(){
+      const own = readJson(OWN_KEY);
+      if(own && ['easy','normal','hard'].includes(own.diff)) settings.diff = own.diff;
+      if(!readJson(SETTINGS_KEY)){
+        // 第一次：共用鑰匙還沒有 → 讀舊的 moleSettings 搬過去（沒有舊資料就用預設值）
+        if(own){
+          if(own.ui === 'es' || own.ui === 'en') settings.ui = own.ui;
+          if(['zh-TW','zh-CN'].includes(own.script)) settings.script = own.script;
+          if(['off','pinyin','zhuyin'].includes(own.phon)) settings.phon = own.phon;
+        }
+        writeShared();
+      }else{
+        loadShared();
+      }
+      if(own && Object.keys(own).length !== 1) saveOwn();   // 舊欄位清掉，只留 diff
+    })();
+    const ZHONLY = () => settings.ui === 'zh';
+    const T = k => ZHONLY() ? '' : I18N[settings.ui][k];  // 你選的語言（西文／英文）；只有中文時是空的
     const zh = k => ZH[settings.script][k];              // 中文（跟著繁體／簡體）
-    const bi = k => `${zh(k)}<small class="tr">${T(k)}</small>`;   // 中文在前、西文／英文小字在後
+    const bi = k => ZHONLY() ? zh(k) : `${zh(k)}<small class="tr">${T(k)}</small>`;   // 中文在前、西文／英文小字在後
 
     // =====================================================================
     //  拼音 → 注音（台灣注音：輕聲點在字前面）
@@ -777,13 +820,19 @@
     function phoneticFor(py){
       if(settings.phon === 'zhuyin') return toZhuyin(py);
       if(settings.phon === 'pinyin') return py || '';
+      if(settings.phon === 'both') return (py || '') + '\n' + toZhuyin(py);   // 拼音在上、注音在下
       return '';
+    }
+    // 整句（結果畫面用）：both 時拼音一行、注音一行
+    function phoneticSentence(pys){
+      if(settings.phon === 'both') return pys.map(p => p || '').join(' ') + '\n' + pys.map(toZhuyin).join(' ');
+      return pys.map(phoneticFor).join(' ');
     }
     // 把注音／拼音放到字卡上，並記下它大約多寬（讓長詞自動縮小，不超出格子）
     function setPhon(cell){
       const t = phoneticFor(cell.pinyin);
       cell.phonText.textContent = t;
-      cell.card.style.setProperty('--pl', Math.max(1, t.length * (settings.phon === 'zhuyin' ? 1.0 : 0.6)));
+      cell.card.style.setProperty('--pl', Math.max(1, Math.max(...t.split('\n').map(l => l.length * (/[ㄅ-ㄩ]/.test(l) ? 1.0 : 0.6)), 1)));
     }
 
     // =====================================================================
@@ -1080,7 +1129,7 @@
       u.lang = 'zh-TW';
       if(!zhVoice) pickVoice();
       if(zhVoice) u.voice = zhVoice;
-      u.rate = 0.9;
+      u.rate = RATE_VALUE[settings.rate] || RATE_VALUE.normal;
       window.speechSynthesis.speak(u);
     }
 
@@ -1121,9 +1170,10 @@
     //  設定面板 + 多語系（手機版放在 ⚙ 彈窗裡）
     // =====================================================================
     const GROUPS = [
-      { key: 'ui',     label: 'gUi',     lockInGame: false, opts: () => [['es','Español'],['en','English']] },
+      { key: 'ui',     label: 'gUi',     lockInGame: false, opts: () => [['es','中文＋Español'],['en','中文＋English'],['zh',zh('zhOnly')]] },
       { key: 'script', label: 'gScript', lockInGame: true,  opts: () => [['zh-TW','繁體'],['zh-CN','简体']] },
-      { key: 'phon',   label: 'gPhon',   lockInGame: false, opts: () => [['off',bi('off')],['pinyin',bi('pinyin')],['zhuyin',bi('zhuyin')]] },
+      { key: 'phon',   label: 'gPhon',   lockInGame: false, opts: () => [['off',bi('off')],['pinyin',bi('pinyin')],['zhuyin',bi('zhuyin')],['both',bi('both')]] },
+      { key: 'rate',   label: 'gRate',   lockInGame: false, opts: () => [['slow',bi('slow')],['normal',bi('rnormal')],['fast',bi('fast')]] },
       { key: 'diff',   label: 'gDiff',   lockInGame: true,  opts: () => [['easy',bi('easy')],['normal',bi('normal')],['hard',bi('hard')]] }
     ];
     const settingsBox = document.getElementById('settings');
@@ -1161,14 +1211,14 @@
       const g = GROUPS.find(x => x.key === key);
       if(g.lockInGame && isPlaying) return;
       settings[key] = val;
-      saveSettings();
+      if(key === 'diff') saveOwn(); else writeShared();
       applyUi();
     }
 
     function applyUi(){
-      document.documentElement.lang = settings.ui;
-      document.title = zh('title') + ' · ' + T('title');
-      document.getElementById('brand').innerHTML = zh('title') + `<small class="tr">${T('title')}</small>`;
+      document.documentElement.lang = ZHONLY() ? 'zh' : settings.ui;
+      document.title = zh('title') + (ZHONLY() ? '' : ' · ' + T('title'));
+      document.getElementById('brand').innerHTML = zh('title') + (ZHONLY() ? '' : `<small class="tr">${T('title')}</small>`);
       document.querySelectorAll('[data-i18n]').forEach(el => { el.innerHTML = bi(el.dataset.i18n); });
       renderSettings();
       updateStats();
@@ -1449,10 +1499,10 @@
         info.appendChild(zh);
         if(settings.phon !== 'off'){
           const ph = document.createElement('div'); ph.className = 'rv-ph';
-          ph.textContent = sen.pinyin.map(phoneticFor).join(' ');
+          ph.textContent = phoneticSentence(sen.pinyin);
           info.appendChild(ph);
         }
-        if(sen.es){ const es = document.createElement('div'); es.className = 'rv-es'; es.textContent = sen.es; info.appendChild(es); }
+        if(sen.es && !ZHONLY()){ const es = document.createElement('div'); es.className = 'rv-es'; es.textContent = sen.es; info.appendChild(es); }
         row.appendChild(btn); row.appendChild(info);
         box.appendChild(row);
       });
@@ -1743,6 +1793,15 @@
     if(portraitMQ.addEventListener) portraitMQ.addEventListener('change', placeTimer); else portraitMQ.addListener(placeTimer);
     placeTimer();
 
+    // 別的分頁改了共用設定 → 這裡跟著更新（遊戲中不換中文字，免得句子中途變樣）
+    window.addEventListener('storage', e => {
+      if(e.key !== SETTINGS_KEY) return;
+      const keepScript = settings.script;
+      loadShared();
+      if(isPlaying) settings.script = keepScript;
+      applyUi();
+      if(document.getElementById('result-modal').style.display === 'flex') buildReview();
+    });
     applyUi();
     showPlaceholder('placeholder');
   </script>
