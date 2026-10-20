@@ -717,7 +717,7 @@
         placeholder: 'Pulsa "¡Empezar!" para cargar una frase',
         loading: 'Cargando frases…',
         settings: 'Configuración',
-        gUi: 'Idioma de la interfaz', gScript: 'Escritura china', gPhon: 'Ayuda fonética', gDiff: 'Dificultad', gRate: 'Velocidad de voz',
+        gUi: 'Idioma de la interfaz', gScript: 'Escritura china', gPhon: 'Ayuda fonética', gDiff: 'Dificultad', gLevel: 'Nivel de frases', lvMix: 'Mixto', gRate: 'Velocidad de voz',
         off: 'No', pinyin: 'Pinyin', zhuyin: 'Zhuyin', both: 'Ambos',
         slow: 'Lenta', rnormal: 'Normal', fast: 'Rápida',
         easy: 'Fácil', normal: 'Normal', hard: 'Difícil',
@@ -737,7 +737,7 @@
         placeholder: 'Press "Start!" to load a sentence',
         loading: 'Loading sentences…',
         settings: 'Settings',
-        gUi: 'Interface language', gScript: 'Chinese script', gPhon: 'Phonetics', gDiff: 'Difficulty', gRate: 'Speech speed',
+        gUi: 'Interface language', gScript: 'Chinese script', gPhon: 'Phonetics', gDiff: 'Difficulty', gLevel: 'Sentence level', lvMix: 'Mixed', gRate: 'Speech speed',
         off: 'Off', pinyin: 'Pinyin', zhuyin: 'Zhuyin', both: 'Both',
         slow: 'Slow', rnormal: 'Normal', fast: 'Fast',
         easy: 'Easy', normal: 'Normal', hard: 'Hard',
@@ -756,7 +756,7 @@
       'zh-TW': {
         title: '打地鼠學中文', hits: '答對', errs: '打錯',
         prompt: '照順序打出詞語：', placeholder: '按「開始」載入題目', loading: '載入題目中…',
-        settings: '設定', gUi: '介面語言', gScript: '中文字', gPhon: '語音輔助', gDiff: '難度', gRate: '語速',
+        settings: '設定', gUi: '介面語言', gScript: '中文字', gPhon: '語音輔助', gDiff: '難度', gLevel: '句庫等級', lvMix: '綜合', gRate: '語速',
         off: '不顯示', pinyin: '拼音', zhuyin: '注音', both: '兩個都顯示',
         slow: '慢', rnormal: '普通', fast: '快', zhOnly: '只有中文', easy: '簡單', normal: '普通', hard: '困難',
         start: '開始！', review: '📖 複習句子：', hint: '找發光的字！', restart: '🔄 重新開始', over: '🏁 過關！',
@@ -771,7 +771,7 @@
       'zh-CN': {
         title: '打地鼠学中文', hits: '答对', errs: '打错',
         prompt: '照顺序打出词语：', placeholder: '按“开始”载入题目', loading: '载入题目中…',
-        settings: '设定', gUi: '界面语言', gScript: '中文字', gPhon: '语音辅助', gDiff: '难度', gRate: '语速',
+        settings: '设定', gUi: '界面语言', gScript: '中文字', gPhon: '语音辅助', gDiff: '难度', gLevel: '句库等级', lvMix: '综合', gRate: '语速',
         off: '不显示', pinyin: '拼音', zhuyin: '注音', both: '两个都显示',
         slow: '慢', rnormal: '普通', fast: '快', zhOnly: '只有中文', easy: '简单', normal: '普通', hard: '困难',
         start: '开始！', review: '📖 复习句子：', hint: '找发光的字！', restart: '🔄 重新开始', over: '🏁 过关！',
@@ -787,7 +787,7 @@
 
     // ---- 設定 ----
     // 共用設定（和其他遊戲同一把鑰匙 hanziGames.settings）：script / lang / phon / rate
-    // 遊戲自己的設定（moleSettings）：只放 diff（難度）
+    // 遊戲自己的設定（moleSettings）：只放 diff（難度）、level（句庫等級：mix／A1／A2／B1）
     // 程式內部：ui = lang（es/en/zh）；script 內部用 'zh-TW' / 'zh-CN'，存檔時對應成 trad / simp
     const SETTINGS_KEY = 'hanziGames.settings';
     const OWN_KEY = 'moleSettings';
@@ -795,7 +795,7 @@
     const RATE_VALUE = { slow:0.45, normal:0.65, fast:0.85 };
     const toInnerScript = v => v === 'simp' ? 'zh-CN' : 'zh-TW';
     const toSharedScript = v => v === 'zh-CN' ? 'simp' : 'trad';
-    const settings = { ui: 'es', script: 'zh-TW', phon: 'pinyin', rate: 'normal', diff: 'easy' };
+    const settings = { ui: 'es', script: 'zh-TW', phon: 'pinyin', rate: 'normal', diff: 'easy', level: 'mix' };
     function readJson(key){
       try{ const o = JSON.parse(localStorage.getItem(key) || 'null'); return (o && typeof o === 'object') ? o : null; }catch(e){ return null; }
     }
@@ -816,10 +816,11 @@
         })));
       }catch(e){}
     }
-    function saveOwn(){ try{ localStorage.setItem(OWN_KEY, JSON.stringify({ diff: settings.diff })); }catch(e){} }
+    function saveOwn(){ try{ localStorage.setItem(OWN_KEY, JSON.stringify({ diff: settings.diff, level: settings.level })); }catch(e){} }
     (function init(){
       const own = readJson(OWN_KEY);
       if(own && ['easy','normal','hard'].includes(own.diff)) settings.diff = own.diff;
+      if(own && ['mix','A1','A2','B1'].includes(own.level)) settings.level = own.level;
       if(!readJson(SETTINGS_KEY)){
         // 第一次：共用鑰匙還沒有 → 讀舊的 moleSettings 搬過去（沒有舊資料就用預設值）
         if(own){
@@ -831,7 +832,7 @@
       }else{
         loadShared();
       }
-      if(own && Object.keys(own).length !== 1) saveOwn();   // 舊欄位清掉，只留 diff
+      if(own && Object.keys(own).some(k => !['diff','level'].includes(k))) saveOwn();   // 舊欄位清掉，只留 diff、level
     })();
     const ZHONLY = () => settings.ui === 'zh';
     const T = k => ZHONLY() ? '' : I18N[settings.ui][k];  // 你選的語言（西文／英文）；只有中文時是空的
@@ -1039,7 +1040,44 @@
       bankLoaded = true;
     })();
 
+    // ===== 新句庫（A1／A2／B1，各 100 句）=====
+    // 「綜合」＝原本的公開題庫（Firebase），維持不動；選 A1／A2／B1 就改讀新句庫（一個 JSON 檔，不佔 Firebase 讀取額度），
+    // 題目與干擾詞都只用該等級的句子，所以選 A1 時干擾詞只會是 A1 的詞。
+    const NEW_BANK_URL = 'https://wangchiapin.github.io/corre/bank/sentences.json';
+    const levelSrc = {};            // 等級 → { bank, poolMap, unseen }
+    let newBankPromise = null;
+    function loadNewBankRows(){
+      if(!newBankPromise){
+        newBankPromise = fetch(NEW_BANK_URL).then(r => { if(!r.ok) throw new Error('bank ' + r.status); return r.json(); }).then(j => j.sentences || []);
+        newBankPromise.catch(() => { newBankPromise = null; });
+      }
+      return newBankPromise;
+    }
+    async function ensureLevel(L){
+      if(levelSrc[L]) return true;
+      try{
+        const rows = (await loadNewBankRows()).filter(r => r.level === L && Array.isArray(r.trad) && r.trad.length && Array.isArray(r.pinyin) && r.pinyin.length === r.trad.length && r.es);
+        if(!rows.length) return false;
+        const src = { bank: new Map(), poolMap: { "zh-TW": new Map(), "zh-CN": new Map() }, unseen: [] };
+        rows.forEach(r => {
+          const trad = r.trad.map(String), simp = (r.simp && r.simp.length === trad.length) ? r.simp.map(String) : trad, pinyin = r.pinyin.map(x => String(x || '').trim());
+          src.bank.set(r.id, { trad, simp, pinyin, es: String(r.es).trim(), en: String(r.en || '').trim() });
+          trad.forEach((w, i) => { if(w && !src.poolMap["zh-TW"].has(w)) src.poolMap["zh-TW"].set(w, pinyin[i]); });
+          simp.forEach((w, i) => { if(w && !src.poolMap["zh-CN"].has(w)) src.poolMap["zh-CN"].set(w, pinyin[i]); });
+        });
+        src.unseen = shuffle(Array.from(src.bank.keys()));
+        levelSrc[L] = src;
+        return true;
+      }catch(e){ console.warn('新句庫載入失敗', e); return false; }
+    }
+    const activeLevelSrc = () => (settings.level !== 'mix' && levelSrc[settings.level]) || null;
+
     function takeNextDoc(){
+      const lv = activeLevelSrc();
+      if(lv){
+        if(lv.unseen.length === 0) lv.unseen = shuffle(Array.from(lv.bank.keys()));
+        return lv.bank.get(lv.unseen.pop());
+      }
       if(unseen.length === 0) unseen = shuffle(Array.from(bank.keys()));   // 全部玩過了 → 洗牌重來
       const doc = bank.get(unseen.pop());
       if(unseen.length <= LOW_WATER) fetchBatch();   // 剩不到 5 句沒玩過 → 背景補一批，不用等
@@ -1050,7 +1088,8 @@
       return { text: words.join(''), words, pinyin: d.pinyin, es: d.es || '' };
     }
     function pickDistractor(){
-      let arr = Array.from(poolMap[settings.script], ([char, pinyin]) => ({ char, pinyin }));
+      const src = activeLevelSrc();
+      let arr = Array.from((src ? src.poolMap : poolMap)[settings.script], ([char, pinyin]) => ({ char, pinyin }));
       if(arr.length < 8) arr = arr.concat(FALLBACK_POOL[settings.script]);
       return arr[Math.floor(Math.random() * arr.length)];
     }
@@ -1262,6 +1301,7 @@
       { key: 'script', label: 'gScript', lockInGame: true,  opts: () => [['zh-TW','繁體'],['zh-CN','简体']] },
       { key: 'phon',   label: 'gPhon',   lockInGame: false, opts: () => [['off',bi('off')],['pinyin',bi('pinyin')],['zhuyin',bi('zhuyin')],['both',bi('both')]] },
       { key: 'rate',   label: 'gRate',   lockInGame: false, opts: () => [['slow',bi('slow')],['normal',bi('rnormal')],['fast',bi('fast')]] },
+      { key: 'level',  label: 'gLevel',  lockInGame: true,  opts: () => [['mix',bi('lvMix')],['A1','A1'],['A2','A2'],['B1','B1']] },
       { key: 'diff',   label: 'gDiff',   lockInGame: true,  opts: () => [['easy',bi('easy')],['normal',bi('normal')],['hard',bi('hard')]] }
     ];
     const settingsBox = document.getElementById('settings');
@@ -1299,7 +1339,7 @@
       const g = GROUPS.find(x => x.key === key);
       if(g.lockInGame && isPlaying) return;
       settings[key] = val;
-      if(key === 'diff') saveOwn(); else writeShared();
+      if(key === 'diff' || key === 'level') saveOwn(); else writeShared();
       applyUi();
     }
 
@@ -1345,6 +1385,10 @@
       toggleSheet(false);
       renderSettings();
 
+      if(settings.level !== 'mix'){
+        showPlaceholder('loading');
+        if(!(await ensureLevel(settings.level))){ settings.level = 'mix'; saveOwn(); renderSettings(); }   // 新句庫讀不到 → 退回綜合
+      }
       if(!bankLoaded){
         showPlaceholder('loading');
         await bankReady;
