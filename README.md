@@ -31,8 +31,9 @@
   準確度 ＝ 打對的詞 ÷（打對的詞 ＋ 打錯的次數）；驚喜地鼠不算，時間到時沒打完的那一句不算。
 - **暱稱**：第一次按「開始」會跳出視窗輸入暱稱（最多 12 字，沒填就是 `Jugador`），按視窗裡的「開始」（或 Enter）就直接開始遊戲。
   暱稱存在瀏覽器，之後可以在設定裡改。
-- **排行榜**：簡單／普通／困難各一份，各顯示前 10 名，繁體與簡體不分開。設定面板和結算畫面都有「排行榜」按鈕；結算畫面會顯示這局的分數、準確度、名次。
-- 同一個暱稱（不分大小寫）在同一個難度只留最高分，分數比較低的那局不會蓋掉。
+- **排行榜**：公開頁依「等級（A1／A2）× 難度（簡單／普通／困難）」分開，各顯示前 10 名，繁體與簡體不分開。榜單視窗上面有 A1／A2 分頁。設定面板和結算畫面都有「排行榜」按鈕；結算畫面會顯示這局的分數、準確度、名次。
+- 同一個暱稱（不分大小寫）在同一個等級＋難度只留最高分，分數比較低的那局不會蓋掉。
+- B1、題包（見下面「隱藏網址參數」）的成績**不進公開榜**，只存在這台瀏覽器（各自一份）。
 - 一局沒完成任何句子（0 分）不會送出成績。
 
 ### 目前狀態：先用「這台裝置」的排行榜
@@ -42,7 +43,7 @@ Firebase 版本也已經寫好（`FirestoreBoard`），只是預設關著。接�
 
 1. 把 `index.html` 裡的 `LEADERBOARD.useFirebase` 從 `false` 改成 `true`（collection 是 `moleScores`，和「跑吧！漢字」的 `mandarinRunnerScores` 分開，放在同一個專案 corre-d16da）。
 2. 到 Firebase 主控台 → Firestore → 規則，加入下面這段（保留原本其他 collection 的規則）。
-3. 第一次打開排行榜時，瀏覽器主控台（Console）會有一則錯誤，附一個「建立索引」的連結，點下去建立即可（`difficulty` 升冪 ＋ `score` 降冪）。
+3. 第一次打開排行榜時，瀏覽器主控台（Console）會有一則錯誤，附一個「建立索引」的連結，點下去建立即可（`difficulty` 升冪 ＋ `level` 升冪 ＋ `score` 降冪）。
 
 ```
 match /moleScores/{id} {
@@ -53,19 +54,20 @@ match /moleScores/{id} {
   allow delete: if false;
 }
 function validScore(d) {
-  return d.keys().hasOnly(['name','score','sentences','accuracy','difficulty','script','updatedAt'])
+  return d.keys().hasOnly(['name','score','sentences','accuracy','difficulty','level','script','updatedAt'])
       && d.name is string && d.name.size() >= 1 && d.name.size() <= 24
       && d.score is int && d.score >= 0 && d.score <= 3050
       && d.sentences is int && d.sentences >= 0 && d.sentences <= 30
       && d.accuracy is int && d.accuracy >= 0 && d.accuracy <= 100
       && d.difficulty in ['easy','normal','hard']
+      && d.level in ['A1','A2']
       && d.script in ['zh-TW','zh-CN'];
 }
 ```
 
 這套規則能擋掉亂填的資料和超出合理範圍的分數，但沒有登入機制，所以擋不住有心人直接在合理範圍內灌分；一般班級／朋友使用已經夠用。
 
-資料格式（每個難度、每個暱稱一份文件，文件 ID 是 `難度__暱稱小寫`）：`name`、`score`、`sentences`、`accuracy`（0–100）、`difficulty`、`script`、`updatedAt`。
+資料格式（每個難度、每個等級、每個暱稱一份文件，文件 ID 是 `難度__等級__暱稱小寫`）：`name`、`score`、`sentences`、`accuracy`（0–100）、`difficulty`、`level`（A1／A2）、`script`、`updatedAt`。沒有 `level` 欄位的是改版前（舊題庫時期）的成績，公開頁不再顯示，管理員統計頁還看得到。
 
 ## 設定
 
@@ -75,15 +77,29 @@ function validScore(d) {
 | 中文字 | 繁體 / 簡體 |
 | 讀音 | 拼音 / 注音 / 兩個都顯示 / 不顯示（預設拼音） |
 | 語速 | 慢 0.45 / 普通 0.65 / 快 0.85（預設普通） |
+| 句庫等級 | A1 / A2（公開頁只有這兩個；B1 要用隱藏網址） |
 | 難度 | 簡單 / 普通 / 困難（同時出現的地鼠數與停留時間不同） |
 
 設定和暱稱會記在瀏覽器裡，下次打開還在。中文字、介面語言、讀音、語速和其他遊戲共用同一份設定（localStorage 鑰匙 `hanziGames.settings`，寫入時會合併、不會蓋掉其他遊戲的欄位，多個分頁會同步）；難度和暱稱只屬於這個遊戲。第一次打開時，會把舊的 `moleSettings` 自動搬到共用設定。
 
+## 隱藏網址參數（不會出現在公開畫面）
+
+句庫在 `corre` 的 `bank/`（A1.json、A2.json、B1.json、packs.json）。
+
+| 網址 | 效果 |
+|---|---|
+| `?level=B1` | 只出 B1 句子（付費用）；成績只存本機 |
+| `?level=A2` | 直接指定 A2（成績進公開 A2 榜） |
+| `?pack=food` | 題包（所有等級裡符合題包規則的句子）；成績只存本機 |
+| `?pack=food&level=A1` | 題包 × 等級 |
+
+指定後設定面板不顯示等級鈕；網址指定的等級不會被記成下次的預設。題包 ID 不存在或讀不到時，退回舊公開題庫。
+
 ## 特色
 
 - 手機（直式、橫式）、平板、電腦都能玩；手機的設定收在 ⚙ 彈出視窗。
-- 句子來自 Firebase 句子庫（collection `mandarinRunnerSentences`），每次隨機讀 25 句，剩 5 句以下才在背景補讀，節省讀取次數。
-- 連不上資料庫時，會自動使用 3 句內建句子。
+- 句子來自 `corre` 的新句庫（`bank/A1.json`、`A2.json`、`B1.json`，每級一個檔，只讀選到的那一級）；題目與干擾詞都只用該等級的句子。
+- 新句庫讀不到時，才改用舊的 Firebase 公開題庫（`mandarinRunnerSentences`，等級選項會隱藏），再不行用 3 句內建句子。
 - 使用瀏覽器內建語音念字（語速可選慢／普通／快 = 0.45／0.65／0.85），不管選繁體或簡體，一律念台灣讀音（zh-TW），並明確挑台灣的聲音；裝置沒有台灣聲音時才改用其他國語聲音（廣東話排除）。
 - 拼音自動轉注音。
 

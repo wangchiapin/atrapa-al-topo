@@ -511,8 +511,9 @@
     .score-big strong{ font-size: 40px; line-height: 1; font-weight: 800; color: var(--brick-dark); }
     .rank-line{ min-height: 1.4em; font-size: 15px !important; }
     .rank-line .badge{ display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 10px; background: #F3E3B5; color: var(--brick-dark); font-size: 13px; }
-    #board-tabs{ margin-bottom: 8px; }
-    #board-tabs button{ margin-top: 0; }
+    #board-tabs, #board-levels{ margin-bottom: 8px; }
+    #board-tabs button, #board-levels button{ margin-top: 0; }
+    #board-levels:empty{ display: none; }
     #board-body{ min-height: 120px; max-height: 46vh; overflow-y: auto; text-align: left; }
     #board-body .bd-msg{ padding: 28px 0; text-align: center; font-weight: 700; opacity: .7; }
     .bd-list{ list-style: none; margin: 0; padding: 0; }
@@ -599,6 +600,7 @@
     <div id="board-modal">
       <div class="modal-content">
         <h2 data-i18n="board"></h2>
+        <div class="seg" id="board-levels"></div>
         <div class="seg" id="board-tabs"></div>
         <div id="board-body"></div>
         <p class="board-note" id="board-note"></p>
@@ -825,11 +827,23 @@
         })));
       }catch(e){}
     }
-    function saveOwn(){ try{ localStorage.setItem(OWN_KEY, JSON.stringify({ diff: settings.diff, level: settings.level })); }catch(e){} }
+    // 隱藏網址參數（不出現在公開畫面）：?level=B1、?pack=food、?pack=food&level=A2；題包不指定等級＝A1＋A2＋B1 全部
+    const TQS = new URLSearchParams(location.search);
+    const PACK_P = (TQS.get('pack') || '').toLowerCase(), LEVEL_P = (TQS.get('level') || '').toUpperCase();
+    const PACK_OK = /^[a-z0-9_-]{1,24}$/.test(PACK_P), LEVEL_OK = ['A1','A2','B1'].includes(LEVEL_P);
+    const HIDDEN_SET = PACK_OK || LEVEL_OK;
+    const PRIVATE_SET = PACK_OK || LEVEL_P === 'B1';       // B1 與題包：不進公開排行榜，成績只存這台裝置
+    const PUBLIC_LEVELS = ['A1', 'A2'];
+    function saveOwn(){ try{
+      const prev = readJson(OWN_KEY) || {};
+      localStorage.setItem(OWN_KEY, JSON.stringify(Object.assign(prev, { diff: settings.diff, level: HIDDEN_SET ? prev.level : settings.level })));   // 網址指定的等級不記住
+    }catch(e){} }
     (function init(){
       const own = readJson(OWN_KEY);
       if(own && ['easy','normal','hard'].includes(own.diff)) settings.diff = own.diff;
-      if(own && ['A1','A2','B1'].includes(own.level)) settings.level = own.level;   // 舊的 mix 之類無效值 → 用預設 A1
+      if(own && PUBLIC_LEVELS.includes(own.level)) settings.level = own.level;   // 舊的 mix、B1 之類 → 用預設 A1
+      if(LEVEL_OK) settings.level = LEVEL_P;
+      if(PACK_OK) settings.level = LEVEL_OK ? LEVEL_P : 'ALL';
       if(!readJson(SETTINGS_KEY)){
         // 第一次：共用鑰匙還沒有 → 讀舊的 moleSettings 搬過去（沒有舊資料就用預設值）
         if(own){
@@ -1052,10 +1066,26 @@
       }
       return levelRowsP[L];
     }
+    // 題包規則：rule.tags 命中任一標籤，或 rule.grammar 語法點完全相符（和「跑吧！漢字」同一套）
+    let packsP = null;
+    function loadPack(id){
+      if(!packsP){ packsP = fetch(NEW_BANK_BASE + 'packs.json').then(r => { if(!r.ok) throw new Error('packs ' + r.status); return r.json(); }); packsP.catch(() => { packsP = null; }); }
+      return packsP.then(j => (j.packs || []).find(p => p.id === id) || null);
+    }
+    const srcKey = () => PACK_OK ? 'pack:' + PACK_P + ':' + settings.level : settings.level;
+    async function rowsForKey(key){
+      if(key.indexOf('pack:') !== 0) return (await loadNewBankRows(key)).filter(r => r.level === key);
+      const lv = key.split(':')[2], pack = await loadPack(PACK_P);
+      if(!pack) return [];
+      const rule = pack.rule || {};
+      const all = (await Promise.all((lv === 'ALL' ? ['A1','A2','B1'] : [lv]).map(loadNewBankRows))).reduce((a, b) => a.concat(b), []);
+      const rows = all.filter(x => rule.tags ? (x.tags || []).some(t => rule.tags.includes(t)) : rule.grammar ? rule.grammar.some(g => String(x.grammar || '').endsWith(' ' + g)) : false);
+      return rows.length >= 3 ? rows : [];
+    }
     async function ensureLevel(L){
       if(levelSrc[L]) return true;
       try{
-        const rows = (await loadNewBankRows(L)).filter(r => r.level === L && Array.isArray(r.trad) && r.trad.length && Array.isArray(r.pinyin) && r.pinyin.length === r.trad.length && r.es);
+        const rows = (await rowsForKey(L)).filter(r => Array.isArray(r.trad) && r.trad.length && Array.isArray(r.pinyin) && r.pinyin.length === r.trad.length && r.es);
         if(!rows.length) return false;
         const src = { bank: new Map(), poolMap: { "zh-TW": new Map(), "zh-CN": new Map() }, unseen: [] };
         rows.forEach(r => {
@@ -1069,7 +1099,7 @@
         return true;
       }catch(e){ console.warn('新句庫載入失敗', e); return false; }
     }
-    const activeLevelSrc = () => (settings.level !== 'mix' && levelSrc[settings.level]) || null;
+    const activeLevelSrc = () => (settings.level !== 'mix' && levelSrc[srcKey()]) || null;
     let levelFallback = false;     // true＝新句庫讀不到，正在用舊公開題庫（備用）
     async function useOldBank(){
       levelFallback = true; settings.level = 'mix';
@@ -1083,7 +1113,7 @@
 
     // 開頁就先載入目前等級的句子；讀不到才改用舊公開題庫
     const bankReady = (async () => {
-      if(!(await ensureLevel(settings.level))) await useOldBank();
+      if(!(await ensureLevel(srcKey()))) await useOldBank();
       bankLoaded = true;
     })();
 
@@ -1316,7 +1346,7 @@
       { key: 'script', label: 'gScript', lockInGame: true,  opts: () => [['zh-TW','繁體'],['zh-CN','简体']] },
       { key: 'phon',   label: 'gPhon',   lockInGame: false, opts: () => [['off',bi('off')],['pinyin',bi('pinyin')],['zhuyin',bi('zhuyin')],['both',bi('both')]] },
       { key: 'rate',   label: 'gRate',   lockInGame: false, opts: () => [['slow',bi('slow')],['normal',bi('rnormal')],['fast',bi('fast')]] },
-      { key: 'level',  label: 'gLevel',  lockInGame: true,  opts: () => [['A1','A1'],['A2','A2'],['B1','B1']] },
+      { key: 'level',  label: 'gLevel',  lockInGame: true,  opts: () => PUBLIC_LEVELS.map(l => [l, l]) },
       { key: 'diff',   label: 'gDiff',   lockInGame: true,  opts: () => [['easy',bi('easy')],['normal',bi('normal')],['hard',bi('hard')]] }
     ];
     const settingsBox = document.getElementById('settings');
@@ -1330,7 +1360,7 @@
     function renderSettings(){
       settingsBox.innerHTML = `<div class="set-title">${bi('settings')}</div>`;
       GROUPS.forEach(g => {
-        if(g.key === 'level' && levelFallback) return;   // 新句庫讀不到、改用舊題庫時，不顯示等級選項
+        if(g.key === 'level' && (levelFallback || PRIVATE_SET)) return;   // 新句庫讀不到、改用舊題庫時，或網址指定 B1／題包時，不顯示等級選項
         const wrap = document.createElement('div');
         wrap.className = 'set-group';
         wrap.innerHTML = `<div class="lbl">${bi(g.label)}</div><div class="seg" data-key="${g.key}"></div>`;
@@ -1403,7 +1433,7 @@
 
       if(settings.level !== 'mix'){
         showPlaceholder('loading');
-        if(!(await ensureLevel(settings.level))) await useOldBank();   // 新句庫讀不到 → 改用舊公開題庫
+        if(!(await ensureLevel(srcKey()))) await useOldBank();   // 新句庫讀不到 → 改用舊公開題庫
       }
       if(!bankLoaded){
         showPlaceholder('loading');
@@ -1737,20 +1767,22 @@
       isLocal: true,
       _read(){ try{ return JSON.parse(localStorage.getItem(LEADERBOARD.localKey) || '{}') || {}; }catch(e){ return {}; } },
       _write(o){ try{ localStorage.setItem(LEADERBOARD.localKey, JSON.stringify(o)); }catch(e){} },
+      _k(difficulty, level){ return level ? difficulty + '__' + level : difficulty; },
       async submit(e){
-        const all = this._read(), list = all[e.difficulty] || [], key = nameKeyOf(e.name);
+        const k = this._k(e.difficulty, e.level);
+        const all = this._read(), list = all[k] || [], key = nameKeyOf(e.name);
         const i = list.findIndex(x => nameKeyOf(x.name) === key);
         const rec = { name: e.name, score: e.score, sentences: e.sentences, accuracy: e.accuracy, script: e.script, at: Date.now() };
         let improved = false, best = e.score;
         if(i < 0){ list.push(rec); improved = true; }
         else if(e.score > list[i].score){ list[i] = rec; improved = true; }
         else best = list[i].score;
-        all[e.difficulty] = list;
+        all[k] = list;
         this._write(all);
         return { improved, best };
       },
-      async top(difficulty){
-        const list = (this._read()[difficulty] || []).slice();
+      async top(difficulty, level){
+        const list = (this._read()[this._k(difficulty, level)] || []).slice();
         list.sort((a, b) => b.score - a.score || a.at - b.at);
         return list.slice(0, LEADERBOARD.size);
       }
@@ -1761,9 +1793,9 @@
     const FirestoreBoard = {
       isLocal: false,
       _col(){ return db.collection(LEADERBOARD.collection); },
-      _id(difficulty, name){ return difficulty + '__' + encodeURIComponent(nameKeyOf(name)).replace(/\./g, '%2E'); },
+      _id(difficulty, level, name){ return difficulty + '__' + level + '__' + encodeURIComponent(nameKeyOf(name)).replace(/\./g, '%2E'); },
       async submit(e){
-        const ref = this._col().doc(this._id(e.difficulty, e.name));
+        const ref = this._col().doc(this._id(e.difficulty, e.level, e.name));
         let improved = false, best = e.score;
         await db.runTransaction(async tx => {
           const snap = await tx.get(ref);
@@ -1772,20 +1804,26 @@
             improved = true; best = e.score;
             tx.set(ref, {
               name: e.name, score: e.score, sentences: e.sentences, accuracy: Math.round(e.accuracy * 100),
-              difficulty: e.difficulty, script: e.script,
+              difficulty: e.difficulty, level: e.level, script: e.script,
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
           }else{ improved = false; best = old; }
         });
         return { improved, best };
       },
-      async top(difficulty){
-        // 需要複合索引：difficulty（升冪）＋ score（降冪）
-        const snap = await this._col().where('difficulty', '==', difficulty).orderBy('score', 'desc').limit(LEADERBOARD.size).get();
+      async top(difficulty, level){
+        // 需要複合索引：difficulty（升冪）＋ level（升冪）＋ score（降冪）
+        const snap = await this._col().where('difficulty', '==', difficulty).where('level', '==', level).orderBy('score', 'desc').limit(LEADERBOARD.size).get();
         return snap.docs.map(d => d.data());
       }
     };
-    function activeBoard(){ return (LEADERBOARD.useFirebase && firebaseReady && db) ? FirestoreBoard : LocalBoard; }
+    // 成績歸屬：公開 A1／A2 → 各自的公開榜；B1、題包 → 只存這台裝置（各自一份）；舊題庫備用 → 本機舊鑰匙
+    function boardLevel(){
+      if(levelFallback) return '';
+      if(PACK_OK) return 'pack-' + PACK_P + (LEVEL_OK ? '-' + LEVEL_P : '');
+      return settings.level;
+    }
+    function activeBoard(level){ return (LEADERBOARD.useFirebase && firebaseReady && db && PUBLIC_LEVELS.includes(level)) ? FirestoreBoard : LocalBoard; }
 
     // ---- 這一局結束：送出成績、顯示名次 ----
     let roundToken = 0;
@@ -1795,11 +1833,11 @@
       if(res.sentences < 1){ rankEl.innerHTML = `<small class="tr">${zh('noScore')}</small>`; return; }
       rankEl.innerHTML = bi('saving');
       const entry = { name: playerName || LEADERBOARD.defaultName, score: res.score, sentences: res.sentences,
-                      accuracy: res.accuracy, difficulty: settings.diff, script: settings.script };
-      const board = activeBoard();
+                      accuracy: res.accuracy, difficulty: settings.diff, level: boardLevel(), script: settings.script };
+      const board = activeBoard(entry.level);
       try{
         const r = await board.submit(entry);
-        const list = await board.top(entry.difficulty);
+        const list = await board.top(entry.difficulty, entry.level);
         if(token !== roundToken) return;
         const idx = list.findIndex(x => nameKeyOf(x.name) === nameKeyOf(entry.name));
         let html = idx >= 0 ? `${bi('rankNow')}: <strong>#${idx + 1}</strong>` : bi('notTop');
@@ -1853,9 +1891,11 @@
     const boardBody = document.getElementById('board-body');
     const boardTabs = document.getElementById('board-tabs');
     const boardNote = document.getElementById('board-note');
-    let boardDiff = 'easy', boardToken = 0;
+    const boardLevels = document.getElementById('board-levels');
+    let boardDiff = 'easy', boardLvl = 'A1', boardToken = 0;
     function openBoard(diff){
       boardModal.style.display = 'flex';
+      boardLvl = boardLevel();
       showBoardTab(DIFF_KEYS.includes(diff) ? diff : 'easy');
     }
     function renderBoardTabs(){
@@ -1868,15 +1908,26 @@
         boardTabs.appendChild(b);
       });
     }
+    function renderBoardLevels(){
+      boardLevels.innerHTML = '';
+      if(!PUBLIC_LEVELS.includes(boardLvl) || PRIVATE_SET) return;   // 只有公開榜才分 A1／A2 分頁
+      PUBLIC_LEVELS.forEach(L => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.textContent = L; b.dataset.v = L;
+        if(L === boardLvl) b.classList.add('on');
+        b.addEventListener('click', () => { boardLvl = L; showBoardTab(boardDiff); });
+        boardLevels.appendChild(b);
+      });
+    }
     async function showBoardTab(diff){
       boardDiff = diff;
-      renderBoardTabs();
-      const board = activeBoard(), token = ++boardToken;
+      renderBoardTabs(); renderBoardLevels();
+      const board = activeBoard(boardLvl), token = ++boardToken;
       boardNote.innerHTML = board.isLocal ? bi('localNote') : '';
       const msg = key => { boardBody.innerHTML = `<div class="bd-msg">${bi(key)}</div>`; };
       msg('boardLoading');
       try{
-        const list = await board.top(diff);
+        const list = await board.top(diff, boardLvl);
         if(token !== boardToken) return;
         if(!list.length){ msg('boardEmpty'); return; }
         const ol = document.createElement('ol'); ol.className = 'bd-list';
