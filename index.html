@@ -525,7 +525,15 @@
     #name-modal .btn-primary, #board-modal .btn-primary{ margin-top: 12px; }
     .set-group .nick-input{ padding: 6px 8px; font-size: 16px; }
     #open-board{ margin-top: 6px; }
-  </style>
+  
+    /* 電腦版：開始鍵、暱稱欄放在右欄最上面（計時器正下方），其餘設定在下面捲動，不用再捲到最底才看到開始鍵 */
+    @media (min-width: 821px) and (min-height: 561px) {
+      #controls{ justify-content: flex-start; }
+      #settings-sheet, #settings{ display: contents; }
+      .start-row{ order: -3; margin: 4px 0 10px; }
+      .set-nick{ order: -2; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #D9D1C3; }
+    }
+</style>
 </head>
 <body>
 
@@ -1825,7 +1833,7 @@
     // ---- 設定面板裡的暱稱欄 + 排行榜按鈕 ----
     function renderNickAndBoardSettings(){
       const wrap = document.createElement('div');
-      wrap.className = 'set-group';
+      wrap.className = 'set-group set-nick';
       wrap.innerHTML = `<div class="lbl">${bi('nick')}</div><input class="nick-input" id="nick-input" type="text" maxlength="${LEADERBOARD.maxName}" autocomplete="off" spellcheck="false">
         <button type="button" class="btn-ghost" id="open-board">${bi('board')}</button>`;
       const input = wrap.querySelector('#nick-input');
