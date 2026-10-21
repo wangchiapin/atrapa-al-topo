@@ -960,9 +960,6 @@
       appId: "1:734685362204:web:fec4c0f9f39b1730dfc7d9",
       measurementId: "G-DYDQJ03SJZ"
     };
-    const SENT_COLLECTION = 'mandarinRunnerSentences';
-    const BATCH_SIZE = 25;
-    const LOW_WATER = 5;
     let db = null, firebaseReady = false;
     try{
       if(window.firebase){
@@ -972,7 +969,7 @@
       }
     }catch(e){ console.warn('Firebase 初始化失敗:', e); }
 
-    // 備援題庫：連不上資料庫、或資料庫是空的時候才用（格式跟資料庫的文件一樣）
+    // 備援句子：新句庫讀不到時才用（舊 Firebase 題庫已不再讀取）
     const FALLBACK_DOCS = [
       { es:"Hoy hace muy buen tiempo.", trad:["今天","天氣","真","好"], simp:["今天","天气","真","好"], pinyin:["jīn tiān","tiān qì","zhēn","hǎo"] },
       { es:"El gatito juega en el césped.", trad:["小貓","在","草地","上","玩"], simp:["小猫","在","草地","上","玩"], pinyin:["xiǎo māo","zài","cǎo dì","shàng","wán"] },
@@ -988,9 +985,6 @@
     const bank = new Map();                       // 文件 id → { trad, simp, pinyin }
     const poolMap = { "zh-TW": new Map(), "zh-CN": new Map() };   // 干擾詞：詞 → 拼音
     let unseen = [];                              // 這一輪還沒玩過的句子 id
-    let fetching = null;
-    let nextFetchAt = 0;                          // 失敗或沒讀到新句子時，先等一下再試（省讀取次數）
-    let allLoaded = false;                        // 題庫總共不到 25 句，已經全部讀進來了
     let usingFallback = false;
     let bankLoaded = false;
 
@@ -1007,12 +1001,6 @@
       return true;
     }
 
-    function randomDocId(){
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-      let s = '';
-      for(let i = 0; i < 20; i++) s += chars[Math.floor(Math.random() * chars.length)];
-      return s;
-    }
     function shuffle(arr){
       for(let i = arr.length - 1; i > 0; i--){
         const j = Math.floor(Math.random() * (i + 1));
@@ -1021,37 +1009,6 @@
       return arr;
     }
 
-    // 從隨機位置開始讀 25 句（讀到尾巴不夠就從頭接上），回傳這次新增了幾句
-    function fetchBatch(){
-      if(!firebaseReady || usingFallback || allLoaded) return Promise.resolve(0);
-      if(fetching) return fetching;
-      if(Date.now() < nextFetchAt) return Promise.resolve(0);
-      const p = (async () => {
-        try{
-          const col = db.collection(SENT_COLLECTION);
-          const idField = firebase.firestore.FieldPath.documentId();
-          const rid = randomDocId();
-          const first = await col.orderBy(idField).startAt(rid).limit(BATCH_SIZE).get();
-          let docs = first.docs.slice();
-          if(docs.length < BATCH_SIZE){
-            const more = await col.orderBy(idField).endBefore(rid).limit(BATCH_SIZE - docs.length).get();
-            docs = docs.concat(more.docs);
-          }
-          if(docs.length < BATCH_SIZE) allLoaded = true;   // 接到頭了還是不夠 25 句 → 整個題庫就這麼多
-          let added = 0;
-          docs.forEach(doc => { if(addDoc(doc.id, doc.data())) added++; });
-          if(added === 0) nextFetchAt = Date.now() + 30000;
-          return added;
-        }catch(e){
-          console.warn('讀取雲端句庫失敗:', e);
-          nextFetchAt = Date.now() + 20000;
-          return 0;
-        }
-      })();
-      fetching = p;
-      p.finally(() => { if(fetching === p) fetching = null; });
-      return p;
-    }
 
     // ===== 新句庫（A1／A2／B1，每個等級一個檔）=====
     // 玩法只用新句庫（A1／A2／B1，每級一個 JSON 檔，只讀選到的那一級，不佔 Firebase 讀取額度），題目與干擾詞都只用該等級的句子，
@@ -1101,11 +1058,10 @@
     }
     const activeLevelSrc = () => (settings.level !== 'mix' && levelSrc[srcKey()]) || null;
     let levelFallback = false;     // true＝新句庫讀不到，正在用舊公開題庫（備用）
-    async function useOldBank(){
+    async function useOldBank(){   // 名稱沿用舊的；現在是改用 3 句內建句子，不讀 Firebase
       levelFallback = true; settings.level = 'mix';
       if(bank.size === 0){
-        await fetchBatch();
-        if(bank.size === 0){ usingFallback = true; FALLBACK_DOCS.forEach((d, i) => addDoc('fallback-' + i, d)); }
+        usingFallback = true; FALLBACK_DOCS.forEach((d, i) => addDoc('fallback-' + i, d));
         shuffle(unseen);
       }
       renderSettings();
@@ -1125,7 +1081,6 @@
       }
       if(unseen.length === 0) unseen = shuffle(Array.from(bank.keys()));   // 全部玩過了 → 洗牌重來
       const doc = bank.get(unseen.pop());
-      if(unseen.length <= LOW_WATER) fetchBatch();   // 剩不到 5 句沒玩過 → 背景補一批，不用等
       return doc;
     }
     function sentenceFromDoc(d){
@@ -1433,7 +1388,7 @@
 
       if(settings.level !== 'mix'){
         showPlaceholder('loading');
-        if(!(await ensureLevel(srcKey()))) await useOldBank();   // 新句庫讀不到 → 改用舊公開題庫
+        if(!(await ensureLevel(srcKey()))) await useOldBank();   // 新句庫讀不到 → 改用內建句子
       }
       if(!bankLoaded){
         showPlaceholder('loading');
