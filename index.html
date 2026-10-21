@@ -528,7 +528,8 @@
   
     /* 電腦版：開始鍵、暱稱欄放在右欄最上面（計時器正下方），其餘設定在下面捲動，不用再捲到最底才看到開始鍵 */
     @media (min-width: 821px) and (min-height: 561px) {
-      #controls{ justify-content: flex-start; }
+      #controls{ justify-content: flex-start; grid-row: 1 / 3; padding-top: 74px; }   /* 右欄整個往上：計時器貼在最上面，下面的內容緊接著，不再被題目橫幅的高度推下去 */
+      .timer-box{ align-self: start; z-index: 2; }
       #settings-sheet, #settings{ display: contents; }
       .start-row{ order: -3; margin: 4px 0 10px; }
       .set-nick{ order: -2; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #D9D1C3; }
