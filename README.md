@@ -20,7 +20,7 @@
 
 ## 句庫等級（設定 → 句庫等級）
 
-- 只有 **A1／A2／B1** 三個等級（預設 A1）。句子來自新句庫（各 100 句，`https://wangchiapin.github.io/corre/bank/sentences.json`，原稿與工具在 game-kit 的 `bank/`）。
+- 只有 **A1／A2／B1** 三個等級（預設 A1）。句子來自新句庫（每級一個檔，`https://wangchiapin.github.io/corre/bank/A1.json`、`A2.json`、`B1.json`，原稿與工具在 game-kit 的 `bank/`）。
   題目與干擾詞都只用該等級的句子，所以選 A1 時干擾詞只會是 A1 的詞。
 - 舊的公開題庫（Firebase）不再讓玩家選；只有新句庫讀不到時才自動當備用（這時設定裡不顯示等級）。開頁時不會再讀 Firebase。
 - 選擇存在 `moleSettings` 的 `level`（和 `diff` 放一起）；遊戲中不能改。排行榜目前不分等級（只分難度）。

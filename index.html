@@ -1039,23 +1039,23 @@
       return p;
     }
 
-    // ===== 新句庫（A1／A2／B1，各 100 句）=====
-    // 玩法只用新句庫（A1／A2／B1，一個 JSON 檔，不佔 Firebase 讀取額度），題目與干擾詞都只用該等級的句子，
+    // ===== 新句庫（A1／A2／B1，每個等級一個檔）=====
+    // 玩法只用新句庫（A1／A2／B1，每級一個 JSON 檔，只讀選到的那一級，不佔 Firebase 讀取額度），題目與干擾詞都只用該等級的句子，
     // 所以選 A1 時干擾詞只會是 A1 的詞。舊的公開題庫（Firebase）只在新句庫讀不到時當備用（等級選項會隱藏）。
-    const NEW_BANK_URL = 'https://wangchiapin.github.io/corre/bank/sentences.json';
+    const NEW_BANK_BASE = 'https://wangchiapin.github.io/corre/bank/';   // 每個等級一個檔：A1.json、A2.json、B1.json
     const levelSrc = {};            // 等級 → { bank, poolMap, unseen }
-    let newBankPromise = null;
-    function loadNewBankRows(){
-      if(!newBankPromise){
-        newBankPromise = fetch(NEW_BANK_URL).then(r => { if(!r.ok) throw new Error('bank ' + r.status); return r.json(); }).then(j => j.sentences || []);
-        newBankPromise.catch(() => { newBankPromise = null; });
+    const levelRowsP = {};          // 等級 → 讀檔的 Promise（每級只讀一次）
+    function loadNewBankRows(L){
+      if(!levelRowsP[L]){
+        levelRowsP[L] = fetch(NEW_BANK_BASE + L + '.json').then(r => { if(!r.ok) throw new Error('bank ' + L + ' ' + r.status); return r.json(); }).then(j => j.sentences || []);
+        levelRowsP[L].catch(() => { delete levelRowsP[L]; });
       }
-      return newBankPromise;
+      return levelRowsP[L];
     }
     async function ensureLevel(L){
       if(levelSrc[L]) return true;
       try{
-        const rows = (await loadNewBankRows()).filter(r => r.level === L && Array.isArray(r.trad) && r.trad.length && Array.isArray(r.pinyin) && r.pinyin.length === r.trad.length && r.es);
+        const rows = (await loadNewBankRows(L)).filter(r => r.level === L && Array.isArray(r.trad) && r.trad.length && Array.isArray(r.pinyin) && r.pinyin.length === r.trad.length && r.es);
         if(!rows.length) return false;
         const src = { bank: new Map(), poolMap: { "zh-TW": new Map(), "zh-CN": new Map() }, unseen: [] };
         rows.forEach(r => {
