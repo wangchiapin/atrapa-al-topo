@@ -717,7 +717,7 @@
         placeholder: 'Pulsa "¡Empezar!" para cargar una frase',
         loading: 'Cargando frases…',
         settings: 'Configuración',
-        gUi: 'Idioma de la interfaz', gScript: 'Escritura china', gPhon: 'Ayuda fonética', gDiff: 'Dificultad', gLevel: 'Nivel de frases', lvMix: 'Mixto', gRate: 'Velocidad de voz',
+        gUi: 'Idioma de la interfaz', gScript: 'Escritura china', gPhon: 'Ayuda fonética', gDiff: 'Dificultad', gLevel: 'Nivel de frases', gRate: 'Velocidad de voz',
         off: 'No', pinyin: 'Pinyin', zhuyin: 'Zhuyin', both: 'Ambos',
         slow: 'Lenta', rnormal: 'Normal', fast: 'Rápida',
         easy: 'Fácil', normal: 'Normal', hard: 'Difícil',
@@ -737,7 +737,7 @@
         placeholder: 'Press "Start!" to load a sentence',
         loading: 'Loading sentences…',
         settings: 'Settings',
-        gUi: 'Interface language', gScript: 'Chinese script', gPhon: 'Phonetics', gDiff: 'Difficulty', gLevel: 'Sentence level', lvMix: 'Mixed', gRate: 'Speech speed',
+        gUi: 'Interface language', gScript: 'Chinese script', gPhon: 'Phonetics', gDiff: 'Difficulty', gLevel: 'Sentence level', gRate: 'Speech speed',
         off: 'Off', pinyin: 'Pinyin', zhuyin: 'Zhuyin', both: 'Both',
         slow: 'Slow', rnormal: 'Normal', fast: 'Fast',
         easy: 'Easy', normal: 'Normal', hard: 'Hard',
@@ -756,7 +756,7 @@
       'zh-TW': {
         title: '打地鼠學中文', hits: '答對', errs: '打錯',
         prompt: '照順序打出詞語：', placeholder: '按「開始」載入題目', loading: '載入題目中…',
-        settings: '設定', gUi: '介面語言', gScript: '中文字', gPhon: '語音輔助', gDiff: '難度', gLevel: '句庫等級', lvMix: '綜合', gRate: '語速',
+        settings: '設定', gUi: '介面語言', gScript: '中文字', gPhon: '語音輔助', gDiff: '難度', gLevel: '句庫等級', gRate: '語速',
         off: '不顯示', pinyin: '拼音', zhuyin: '注音', both: '兩個都顯示',
         slow: '慢', rnormal: '普通', fast: '快', zhOnly: '只有中文', easy: '簡單', normal: '普通', hard: '困難',
         start: '開始！', review: '📖 複習句子：', hint: '找發光的字！', restart: '🔄 重新開始', over: '🏁 過關！',
@@ -771,7 +771,7 @@
       'zh-CN': {
         title: '打地鼠学中文', hits: '答对', errs: '打错',
         prompt: '照顺序打出词语：', placeholder: '按“开始”载入题目', loading: '载入题目中…',
-        settings: '设定', gUi: '界面语言', gScript: '中文字', gPhon: '语音辅助', gDiff: '难度', gLevel: '句库等级', lvMix: '综合', gRate: '语速',
+        settings: '设定', gUi: '界面语言', gScript: '中文字', gPhon: '语音辅助', gDiff: '难度', gLevel: '句库等级', gRate: '语速',
         off: '不显示', pinyin: '拼音', zhuyin: '注音', both: '两个都显示',
         slow: '慢', rnormal: '普通', fast: '快', zhOnly: '只有中文', easy: '简单', normal: '普通', hard: '困难',
         start: '开始！', review: '📖 复习句子：', hint: '找发光的字！', restart: '🔄 重新开始', over: '🏁 过关！',
@@ -795,7 +795,7 @@
     const RATE_VALUE = { slow:0.45, normal:0.65, fast:0.85 };
     const toInnerScript = v => v === 'simp' ? 'zh-CN' : 'zh-TW';
     const toSharedScript = v => v === 'zh-CN' ? 'simp' : 'trad';
-    const settings = { ui: 'es', script: 'zh-TW', phon: 'pinyin', rate: 'normal', diff: 'easy', level: 'mix' };
+    const settings = { ui: 'es', script: 'zh-TW', phon: 'pinyin', rate: 'normal', diff: 'easy', level: 'A1' };
     function readJson(key){
       try{ const o = JSON.parse(localStorage.getItem(key) || 'null'); return (o && typeof o === 'object') ? o : null; }catch(e){ return null; }
     }
@@ -820,7 +820,7 @@
     (function init(){
       const own = readJson(OWN_KEY);
       if(own && ['easy','normal','hard'].includes(own.diff)) settings.diff = own.diff;
-      if(own && ['mix','A1','A2','B1'].includes(own.level)) settings.level = own.level;
+      if(own && ['A1','A2','B1'].includes(own.level)) settings.level = own.level;   // 舊的 mix 之類無效值 → 用預設 A1
       if(!readJson(SETTINGS_KEY)){
         // 第一次：共用鑰匙還沒有 → 讀舊的 moleSettings 搬過去（沒有舊資料就用預設值）
         if(own){
@@ -1030,19 +1030,9 @@
       return p;
     }
 
-    const bankReady = (async () => {
-      await fetchBatch();
-      if(bank.size === 0){                         // 連不上或題庫是空的 → 用備用題
-        usingFallback = true;
-        FALLBACK_DOCS.forEach((d, i) => addDoc('fallback-' + i, d));
-      }
-      shuffle(unseen);
-      bankLoaded = true;
-    })();
-
     // ===== 新句庫（A1／A2／B1，各 100 句）=====
-    // 「綜合」＝原本的公開題庫（Firebase），維持不動；選 A1／A2／B1 就改讀新句庫（一個 JSON 檔，不佔 Firebase 讀取額度），
-    // 題目與干擾詞都只用該等級的句子，所以選 A1 時干擾詞只會是 A1 的詞。
+    // 玩法只用新句庫（A1／A2／B1，一個 JSON 檔，不佔 Firebase 讀取額度），題目與干擾詞都只用該等級的句子，
+    // 所以選 A1 時干擾詞只會是 A1 的詞。舊的公開題庫（Firebase）只在新句庫讀不到時當備用（等級選項會隱藏）。
     const NEW_BANK_URL = 'https://wangchiapin.github.io/corre/bank/sentences.json';
     const levelSrc = {};            // 等級 → { bank, poolMap, unseen }
     let newBankPromise = null;
@@ -1071,6 +1061,22 @@
       }catch(e){ console.warn('新句庫載入失敗', e); return false; }
     }
     const activeLevelSrc = () => (settings.level !== 'mix' && levelSrc[settings.level]) || null;
+    let levelFallback = false;     // true＝新句庫讀不到，正在用舊公開題庫（備用）
+    async function useOldBank(){
+      levelFallback = true; settings.level = 'mix';
+      if(bank.size === 0){
+        await fetchBatch();
+        if(bank.size === 0){ usingFallback = true; FALLBACK_DOCS.forEach((d, i) => addDoc('fallback-' + i, d)); }
+        shuffle(unseen);
+      }
+      renderSettings();
+    }
+
+    // 開頁就先載入目前等級的句子；讀不到才改用舊公開題庫
+    const bankReady = (async () => {
+      if(!(await ensureLevel(settings.level))) await useOldBank();
+      bankLoaded = true;
+    })();
 
     function takeNextDoc(){
       const lv = activeLevelSrc();
@@ -1301,7 +1307,7 @@
       { key: 'script', label: 'gScript', lockInGame: true,  opts: () => [['zh-TW','繁體'],['zh-CN','简体']] },
       { key: 'phon',   label: 'gPhon',   lockInGame: false, opts: () => [['off',bi('off')],['pinyin',bi('pinyin')],['zhuyin',bi('zhuyin')],['both',bi('both')]] },
       { key: 'rate',   label: 'gRate',   lockInGame: false, opts: () => [['slow',bi('slow')],['normal',bi('rnormal')],['fast',bi('fast')]] },
-      { key: 'level',  label: 'gLevel',  lockInGame: true,  opts: () => [['mix',bi('lvMix')],['A1','A1'],['A2','A2'],['B1','B1']] },
+      { key: 'level',  label: 'gLevel',  lockInGame: true,  opts: () => [['A1','A1'],['A2','A2'],['B1','B1']] },
       { key: 'diff',   label: 'gDiff',   lockInGame: true,  opts: () => [['easy',bi('easy')],['normal',bi('normal')],['hard',bi('hard')]] }
     ];
     const settingsBox = document.getElementById('settings');
@@ -1315,6 +1321,7 @@
     function renderSettings(){
       settingsBox.innerHTML = `<div class="set-title">${bi('settings')}</div>`;
       GROUPS.forEach(g => {
+        if(g.key === 'level' && levelFallback) return;   // 新句庫讀不到、改用舊題庫時，不顯示等級選項
         const wrap = document.createElement('div');
         wrap.className = 'set-group';
         wrap.innerHTML = `<div class="lbl">${bi(g.label)}</div><div class="seg" data-key="${g.key}"></div>`;
@@ -1387,7 +1394,7 @@
 
       if(settings.level !== 'mix'){
         showPlaceholder('loading');
-        if(!(await ensureLevel(settings.level))){ settings.level = 'mix'; saveOwn(); renderSettings(); }   // 新句庫讀不到 → 退回綜合
+        if(!(await ensureLevel(settings.level))) await useOldBank();   // 新句庫讀不到 → 改用舊公開題庫
       }
       if(!bankLoaded){
         showPlaceholder('loading');
