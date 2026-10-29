@@ -36,12 +36,13 @@
 - B1、題包（見下面「隱藏網址參數」）的成績**不進公開榜**，只存在這台瀏覽器（各自一份）。
 - 一局沒完成任何句子（0 分）不會送出成績。
 
-### 目前狀態：先用「這台裝置」的排行榜
+### 目前狀態：公開 A1／A2 排行榜已接上 Firebase
 
-排行榜的畫面和資料層都做好了，現在資料存在這台瀏覽器（localStorage），所以只有自己看得到。
-Firebase 版本也已經寫好（`FirestoreBoard`），只是預設關著。接上 Firebase 的步驟：
+`LEADERBOARD.useFirebase` 現在是 `true`（2026-10-20 開啟）：公開的 A1／A2 成績寫到 Firebase 專案 `corre-d16da` 的 `moleScores`（和「跑吧！漢字」的 `mandarinRunnerScores` 分開）。B1、題包的成績，以及 Firebase 連不上時，仍存在這台瀏覽器（localStorage `moleScoresLocal`）。
+遊玩紀錄（訪客、開始、玩完）另外寫到 `memorma-24dab` 的 `plays`、`visits`（遊戲代號 `mole`）。
+以下是 Firebase 排行榜的設定步驟（保留作為重建或換專案時的參考）：
 
-1. 把 `index.html` 裡的 `LEADERBOARD.useFirebase` 從 `false` 改成 `true`（collection 是 `moleScores`，和「跑吧！漢字」的 `mandarinRunnerScores` 分開，放在同一個專案 corre-d16da）。
+1. `index.html` 裡的 `LEADERBOARD.useFirebase` 要是 `true`（collection 是 `moleScores`，放在專案 corre-d16da）。
 2. 到 Firebase 主控台 → Firestore → 規則，加入下面這段（保留原本其他 collection 的規則）。
 3. 第一次打開排行榜時，瀏覽器主控台（Console）會有一則錯誤，附一個「建立索引」的連結，點下去建立即可（`difficulty` 升冪 ＋ `level` 升冪 ＋ `score` 降冪）。
 
@@ -106,9 +107,12 @@ function validScore(d) {
 ## 技術
 
 單一檔案 `index.html`，純 HTML／CSS／JavaScript，沒有建置步驟。
-Firebase Firestore（compat SDK）讀取句子。地鼠、洞、槌子都是內嵌 SVG；音效用 WebAudio 合成。
+Firebase Firestore（compat SDK）用來存取排行榜（句子改讀 `corre` 的 `bank/` 檔案，開頁時不再讀 Firebase 句庫）。地鼠、洞、槌子都是內嵌 SVG；音效用 WebAudio 合成。
 
 本機測試：直接用瀏覽器打開 `index.html` 即可。
+
+分享連結預覽（2026-10-28）：`<head>` 有 Open Graph 標籤，根目錄的 `og.jpg`（1200x630）是貼到 LINE／WhatsApp 時顯示的縮圖；名稱來自 `og:title`「打地鼠學中文 · Atrapa al Topo」。
+開始畫面最下面有版權說明（© 2026 @cadadiaunosminutos_ben_chino，中西雙語，2026-10-24 加入）。
 
 ## 句子資料格式
 
