@@ -121,3 +121,12 @@ Firebase Firestore（compat SDK）用來存取排行榜（句子改讀 `corre` �
 ## 手機瀏覽器備註：捲動後回不到頂端（2026-10-24）
 iPhone 版 Chrome 上，頁面可以捲動時，往下捲之後有時回不到最上面（Safari 正常）。
 本遊戲整頁固定不捲動（`overflow:hidden`），不受影響，不需要修改。之後若新增可以捲動的畫面，請設 `<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">`（不要加 `viewport-fit=cover`）並加 `html{color-scheme:light}`（見 game-kit README）。
+
+## 測試
+
+`PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/test_mole.py`（Python + Playwright；擋掉外部網路，用假的 Firebase 和假的語音，不碰真的資料庫）
+
+- 目前 108 項檢查（2026-10-30 建立）。
+- 涵蓋：計分、名字視窗、句庫讀不到時退回內建句、A1／A2／B1 句庫、真的點地鼠、提示、加分地鼠、結算、排行榜寫入與失敗改存本機、計時結束、設定每個值、難度表。
+- 改了遊戲的計分、設定、排行榜或畫面文字後，推上去之前先跑一次。
+- 驗證方式：另外複製一份遊戲、故意改壞一個地方，測試會出現 FAIL。
